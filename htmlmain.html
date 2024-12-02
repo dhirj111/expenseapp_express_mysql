@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>expense tracker</title>
+</head>
+
+<body>
+  <form id="appointmentForm" onsubmit="handleFormSubmit(event)">
+    <label for="expense"> expense amount </label>
+    <input type="number" name="expense" id="expense" />
+
+    </br>
+    <label for="description">description</label>
+    <input type="text" name="description" id="description" />
+    </br>
+    <label for="type">Type</label>
+    <select name="type" id="type">
+      <option value="">food</option>
+      <option value="">entertainment</option>
+      <option value="">study</option>
+    </select>
+
+
+    </br>
+    <button type="submit">Book</button>
+
+  </form>
+
+  <ul id="expense">
+  </ul>
+</body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>
+<script src="/js/busbooking.js"></script>
+
+
+</html>
