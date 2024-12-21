@@ -9,12 +9,13 @@
 
 <body>
   <h1>signup</h1>
-  <form method="post" action="https://localhost:5000/signup">
-    name:<input type="text" required>
-    email:<input type="email" required>
-    password:<input type="password" required>
+  <form method="post" onsubmit="handleformsubmit(event)">
+    name:<input type="text" id="name" required>
+    email:<input type="email" id="email" required>
+    password:<input type="password" id="password" required>
     <button type="submit">submit</button>
   </form>
 </body>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>
+<script src="signup.js"></script>
 </html>

@@ -9,6 +9,7 @@ const router = express.Router();
 //to serve main html file
 router.get('/', expenseController.baseroot);
 
+router.get('/sign', expenseController.baserootsignup);
 // Route for adding a user
 router.post('adduser', expenseController.adduser);
 
@@ -25,4 +26,5 @@ router.delete('/appointmentData/:id', expenseController.deleteexpense)
 //route to update expense
 router.put('/appointmentData/:id', expenseController.updateexpense)
 
+router.post('/signup', expenseController.signup)
 module.exports = router
