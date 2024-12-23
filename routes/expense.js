@@ -10,6 +10,7 @@ const router = express.Router();
 router.get('/', expenseController.baseroot);
 
 router.get('/sign', expenseController.baserootsignup);
+router.get('/login', expenseController.baserootlogin);
 // Route for adding a user
 router.post('adduser', expenseController.adduser);
 
@@ -27,4 +28,7 @@ router.delete('/appointmentData/:id', expenseController.deleteexpense)
 router.put('/appointmentData/:id', expenseController.updateexpense)
 
 router.post('/signup', expenseController.signup)
+
+router.post('/login', expenseController.login)
+
 module.exports = router

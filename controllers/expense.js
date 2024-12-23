@@ -1,3 +1,4 @@
+const { error } = require('console');
 const Product = require('../models/expenses');
 const Expenseuser = require('../models/expenseuser');
 const router = require('../routes/expense');
@@ -10,10 +11,14 @@ exports.baseroot = (req, res, next) => {
 }
 
 exports.baserootsignup = (req, res, next) => {
-  console.log("Serving htmlmain.html");
+  console.log("Serving singup.html");
   res.sendFile(path.join(__dirname, '..', 'public', 'signup.html'));
 }
 
+exports.baserootlogin = (req, res, next) => {
+  console.log("Serving login.html");
+  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+}
 
 // Route for adding a user
 exports.adduser = (req, res, next) => {
@@ -112,42 +117,78 @@ exports.updateexpense = (req, res, next) => {
     });
 
 }
-exports.signup = (req, res, next) => {
+exports.signup = async (req, res, next) => {
+  try {
+    const { name, email, password } = req.body;
 
-  const { name , email , password} = req.body;
-  Expenseuser.create({
-    name: name,
-    email: email,
-    phone: phone
-  })
-    .then(result => {
-      console.log('Created Product:', result);
-      res.status(201).json({
-        message: "Product created successfully",
-        product: result
-      });
-    })
-    .catch(err => {
-      console.error('Error creating product:', err);
-      res.status(500).json({ error: "Failed to create product", details: err.message });
+    // Check if user with email already exists
+    const existingUser = await Expenseuser.findOne({
+      where: { email: email }
     });
 
+    if (existingUser) {
+      console.log('Account already exists for email:', email);
+      return res.status(409).json({
+        error: "Account already exists",
+        message: "An account with this email already exists"
+      });
+    }
 
+    // If email doesn't exist, create new user
+    const newUser = await Expenseuser.create({
+      name: name,
+      email: email,
+      password: password
+    });
 
+    console.log('Created User:', newUser);
+    res.status(201).json({
+      message: "User created successfully",
+      user: newUser
+    });
 
+  } catch (err) {
+    console.error('Error in signup:', err);
+    res.status(500).json({
+      error: "Failed to process signup",
+      details: err.message
+    });
+  }
+};
+exports.login = async (req, res, next) => {
+  console.log(req.body)
+  try {
+    const { email, password } = req.body;
 
+    const existingUser = await Expenseuser.findOne({
+      where: { email: email }
+    });
+
+    if (existingUser) {
+      if (existingUser.password == password) {
+         res.status(201).json({
+          message: "user logged in succesfully"
+        });
+      }
+      else {
+         res.status(401).json({
+          message: "password is incorrect"
+        })
+      };
+    }
+    else{
+      res.status(404).json({
+        message: " user does not exist",
+      });
+    }
+  }
+  catch (err) {
+    //this block is for eror in exceution of try blocks as a 
+    // whole, catch does not care about individual error of logic
+    console.log("inside catch  block of controller err is ==", err);
+    res.status(500).json({
+      error: " user does not exist",
+      message: err.message
+    });
+  }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

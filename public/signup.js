@@ -15,7 +15,7 @@ const handleformsubmit = (event) => {
       console.log(response)
     })
     .catch((error) => {
-      // console.error('Error details:', error.response ? error.response.data : error.message);
+      console.error('Error details:', error.response ? error.response.data : error.message);
       alert('Failed to create product');
     });
 };
