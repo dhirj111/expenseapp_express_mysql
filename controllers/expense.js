@@ -56,7 +56,6 @@ exports.newexpense = (req, res, next) => {
 
 }
 
-
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
   Product.findAll()
@@ -69,7 +68,6 @@ exports.fetchexpense = (req, res, next) => {
       res.status(500).json({ error: "Failed to fetch products" });
     });
 }
-
 
 //route to delete expense
 exports.deleteexpense = (req, res, next) => {
@@ -177,17 +175,19 @@ exports.login = async (req, res, next) => {
     });
 
     if (existingUser) {
-//const ispasswordmatched = bcrypt.compare(password, existingUser.password);
-//above line does not work bcz .compare returns promise , so it can be handled by .then or try catch
+      //const ispasswordmatched = bcrypt.compare(password, existingUser.password);
+      //above line does not work bcz .compare returns promise , so it can be handled by .then or try catch
       bcrypt.compare(password, existingUser.password).then(function (result) {
 
         if (result) {
-         return  res.status(201).json({
-            message: "user logged in succesfully"
+          return res.status(201).json({
+            code: "userverified",
+            message: "user logged in succesfully",
+            urltoredirect: 'http://localhost:5000/'
           });
         }
         else {
-        return  res.status(401).json({
+          return res.status(401).json({
             message: "password is incorrect"
           })
         };
