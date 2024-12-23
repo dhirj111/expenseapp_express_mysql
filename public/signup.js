@@ -1,7 +1,6 @@
 
 const handleformsubmit = (event) => {
   event.preventDefault();
-
   console.log(event.target.name.value)
   const userDetails = {
     name: event.target.name.value,
