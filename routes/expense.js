@@ -7,7 +7,7 @@ const router = express.Router();
 
 
 //to serve main html file
-router.get('/', expenseController.baseroot);
+
 
 router.get('/sign', expenseController.baserootsignup);
 router.get('/login', expenseController.baserootlogin);
@@ -30,5 +30,5 @@ router.put('/appointmentData/:id', expenseController.updateexpense)
 router.post('/signup', expenseController.signup)
 
 router.post('/login', expenseController.login)
-
+router.get('/', expenseController.baseroot);
 module.exports = router

@@ -4,6 +4,7 @@ const Expenseuser = require('../models/expenseuser');
 const router = require('../routes/expense');
 const { route } = require('../routes/expense');
 const path = require('path');
+const bcrypt = require('bcrypt');
 //to serve main html file
 exports.baseroot = (req, res, next) => {
   console.log("Serving htmlmain.html");
@@ -32,7 +33,6 @@ exports.newexpense = (req, res, next) => {
 
 
   console.log("Received data at /appointmentData");
-
   const { expense, description, type } = req.body;
   //.create is sequlize method , which  we are using right now in models expense.js exported module
   //similary it worked in other middlewares for delete as destroy , findAll or getting full db
@@ -118,6 +118,9 @@ exports.updateexpense = (req, res, next) => {
 
 }
 exports.signup = async (req, res, next) => {
+  const saltRounds = 10;
+  //salt is an string/whatver added to  password which increases randomness of password
+  //even for same password each time to increase safety
   try {
     const { name, email, password } = req.body;
 
@@ -135,16 +138,20 @@ exports.signup = async (req, res, next) => {
     }
 
     // If email doesn't exist, create new user
-    const newUser = await Expenseuser.create({
-      name: name,
-      email: email,
-      password: password
+
+    bcrypt.hash(password, saltRounds, await function (err, hash) {
+      // Store hash in your password DB.
+
+      Expenseuser.create({
+        name: name,
+        email: email,
+        password: hash
+      });
     });
 
-    console.log('Created User:', newUser);
+    // console.log('Created User:', newUser);
     res.status(201).json({
-      message: "User created successfully",
-      user: newUser
+      message: "User created successfully"
     });
 
   } catch (err) {
@@ -155,6 +162,11 @@ exports.signup = async (req, res, next) => {
     });
   }
 };
+
+//async declaration
+//try executes code inside block
+// await make it wait till end
+// catch any error in execution of whole async declared function
 exports.login = async (req, res, next) => {
   console.log(req.body)
   try {
@@ -165,18 +177,24 @@ exports.login = async (req, res, next) => {
     });
 
     if (existingUser) {
-      if (existingUser.password == password) {
-         res.status(201).json({
-          message: "user logged in succesfully"
-        });
-      }
-      else {
-         res.status(401).json({
-          message: "password is incorrect"
-        })
-      };
+//const ispasswordmatched = bcrypt.compare(password, existingUser.password);
+//above line does not work bcz .compare returns promise , so it can be handled by .then or try catch
+      bcrypt.compare(password, existingUser.password).then(function (result) {
+
+        if (result) {
+         return  res.status(201).json({
+            message: "user logged in succesfully"
+          });
+        }
+        else {
+        return  res.status(401).json({
+            message: "password is incorrect"
+          })
+        };
+      });
+
     }
-    else{
+    else {
       res.status(404).json({
         message: " user does not exist",
       });
@@ -192,3 +210,5 @@ exports.login = async (req, res, next) => {
     });
   }
 }
+
+//return just breaks execution of next code lines inside function where it used
