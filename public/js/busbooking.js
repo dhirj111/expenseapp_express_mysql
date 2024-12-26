@@ -5,7 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fetch all existing entries
   const fetchData = () => {
     axios
-      .get("http://localhost:5000/appointmentData")
+      .get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         // Clear existing list
         ulElements.innerHTML = "";
@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     console.log(userDetails)
     axios
-      .post("http://localhost:5000/appointmentData", userDetails)
+      .post("http://localhost:5000/appointmentData", userDetails, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         alert('Product created successfully!');
         fetchData(); // Refresh the list
@@ -62,8 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Delete entry function
   window.deleteEntry = (id) => {
+    console.log("dele etet  is           cl i     c ked")
     axios
-      .delete(`http://localhost:5000/appointmentData/${id}`)
+      .delete(`http://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         console.log('Data Deleted Successfully');
         fetchData(); // Refresh the list
@@ -97,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         description: document.getElementById("description").value,
         type: etype
       };
-//below we are passing two things one is id ,and another is objects as updateddetails
+      //below we are passing two things one is id ,and another is objects as updateddetails
       axios
         .put(`http://localhost:5000/appointmentData/${id}`, updatedDetails)
         .then((response) => {

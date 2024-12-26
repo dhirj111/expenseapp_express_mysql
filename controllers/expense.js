@@ -1,10 +1,23 @@
 const { error } = require('console');
 const Product = require('../models/expenses');
+//expense is product here
+
+
+let SECRET_KEY = "abc123"
+//its for test purpose and should be not exposed publically
+const jwt = require('jsonwebtoken')
+function generateAccessToken(id) {
+  return jwt.sign({ userId: id }, SECRET_KEY);
+}
+
+//product here is expense ,
 const Expenseuser = require('../models/expenseuser');
 const router = require('../routes/expense');
 const { route } = require('../routes/expense');
 const path = require('path');
 const bcrypt = require('bcrypt');
+const { json, where } = require('sequelize');
+const { JsonWebTokenError } = require('jsonwebtoken');
 //to serve main html file
 exports.baseroot = (req, res, next) => {
   console.log("Serving htmlmain.html");
@@ -31,16 +44,21 @@ exports.adduser = (req, res, next) => {
 // Route for handling appointment data of newly added expense
 exports.newexpense = (req, res, next) => {
 
-
   console.log("Received data at /appointmentData");
   const { expense, description, type } = req.body;
+  let currentid;
+  let token = req.headers.token
+  jwt.verify(token, SECRET_KEY, function (err, decoded) {
+    currentid = decoded.userId // bar
+  });
   //.create is sequlize method , which  we are using right now in models expense.js exported module
   //similary it worked in other middlewares for delete as destroy , findAll or getting full db
   //and update for updating data
   Product.create({
     expense: expense,
     description: description,
-    type: type
+    type: type,
+    expenseuserId: currentid
   })
     .then(result => {
       console.log('Created Product:', result);
@@ -53,12 +71,17 @@ exports.newexpense = (req, res, next) => {
       console.error('Error creating product:', err);
       res.status(500).json({ error: "Failed to create product", details: err.message });
     });
-
 }
 
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
-  Product.findAll()
+  let currentid;
+  let token = req.headers['token']
+  jwt.verify(token, SECRET_KEY, function (err, decoded) {
+    currentid = decoded.userId // bar
+  });
+  console.log("currentid            re      e rer ", currentid);
+  Product.findAll({ where: { expenseuserId: currentid } })
     .then(expensedata => {
       res.json(expensedata);
     })
@@ -71,8 +94,18 @@ exports.fetchexpense = (req, res, next) => {
 
 //route to delete expense
 exports.deleteexpense = (req, res, next) => {
+
+  let currentid;
+  let token = req.headers['token']
+  jwt.verify(token, SECRET_KEY, function (err, decoded) {
+    currentid = decoded.userId // bar
+  });
   //way to fetch id from route is req.params.id
   const productId = req.params.id;
+  const userfromrequest = req.params.expenseuserId;
+  // if (userfromrequest != currentid) {
+  //   return res.status(404).json({ error: "you can't delete someone else expenses" });
+  // }
   Product.destroy({
     where: { id: productId }
   })
@@ -173,14 +206,12 @@ exports.login = async (req, res, next) => {
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
     });
-
     if (existingUser) {
-      //const ispasswordmatched = bcrypt.compare(password, existingUser.password);
-      //above line does not work bcz .compare returns promise , so it can be handled by .then or try catch
       bcrypt.compare(password, existingUser.password).then(function (result) {
 
         if (result) {
           return res.status(201).json({
+            usertoken: generateAccessToken(existingUser.id),
             code: "userverified",
             message: "user logged in succesfully",
             urltoredirect: 'http://localhost:5000/'

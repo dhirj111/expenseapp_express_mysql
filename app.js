@@ -10,8 +10,15 @@ app.use(express.json()); // Built-in middleware for parsing JSON
 app.use(express.urlencoded({ extended: true })); // Built-in middleware for parsing URL-encoded data
 
 const sequelize = require('./util/database');
-const Product = require('./models/expenses');
+
+const Expense = require('./models/expenses');
+const Expenseuser = require('./models/expenseuser');
+
+Expense.belongsTo(Expenseuser)
+Expenseuser.hasMany(Expense)
 const adminRoutes = require('./routes/expense');
+
+
 
 // Static file serving
 app.use(express.static(path.join(__dirname, 'public')));
