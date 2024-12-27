@@ -45,12 +45,15 @@ exports.adduser = (req, res, next) => {
 exports.newexpense = (req, res, next) => {
 
   console.log("Received data at /appointmentData");
+  console.log("user attached with req of middleware", req.user.id, "   ", req.body.user)
   const { expense, description, type } = req.body;
-  let currentid;
-  let token = req.headers.token
-  jwt.verify(token, SECRET_KEY, function (err, decoded) {
-    currentid = decoded.userId // bar
-  });
+
+  // let currentid;
+  // let token = req.headers.token;
+  // jwt.verify(token, SECRET_KEY, function (err, decoded) {
+  //   currentid = decoded.userId // bar
+  // });
+
   //.create is sequlize method , which  we are using right now in models expense.js exported module
   //similary it worked in other middlewares for delete as destroy , findAll or getting full db
   //and update for updating data
@@ -58,7 +61,7 @@ exports.newexpense = (req, res, next) => {
     expense: expense,
     description: description,
     type: type,
-    expenseuserId: currentid
+    expenseuserId: req.user.id
   })
     .then(result => {
       console.log('Created Product:', result);
@@ -75,13 +78,13 @@ exports.newexpense = (req, res, next) => {
 
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
-  let currentid;
-  let token = req.headers['token']
-  jwt.verify(token, SECRET_KEY, function (err, decoded) {
-    currentid = decoded.userId // bar
-  });
-  console.log("currentid            re      e rer ", currentid);
-  Product.findAll({ where: { expenseuserId: currentid } })
+  // let currentid;
+  // let token = req.headers['token']
+  // jwt.verify(token, SECRET_KEY, function (err, decoded) {
+  //   currentid = decoded.userId // bar
+  // });
+  
+  Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
       res.json(expensedata);
     })

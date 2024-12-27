@@ -4,12 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fetch all existing entries
   const fetchData = () => {
-    axios
-      .get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         // Clear existing list
         ulElements.innerHTML = "";
-
         // Iterate through all products and create list items
         response.data.forEach((product) => {
           let liitem = document.createElement("li");
