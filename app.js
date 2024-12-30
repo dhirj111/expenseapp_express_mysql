@@ -16,9 +16,12 @@ const Expenseuser = require('./models/expenseuser');
 
 Expense.belongsTo(Expenseuser)
 Expenseuser.hasMany(Expense)
+
+const Order = require('./models/order');
+Expenseuser.hasMany(Order);
+Order.belongsTo(Expenseuser)
+//defiend new relations with user and order after improting it
 const adminRoutes = require('./routes/expense');
-
-
 
 // Static file serving
 app.use(express.static(path.join(__dirname, 'public')));

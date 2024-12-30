@@ -1,5 +1,6 @@
 const { error } = require('console');
 const Product = require('../models/expenses');
+const Order =require('../models/order')
 //expense is product here
 
 
@@ -18,6 +19,7 @@ const path = require('path');
 const bcrypt = require('bcrypt');
 const { json, where } = require('sequelize');
 const { JsonWebTokenError } = require('jsonwebtoken');
+const Razorpay = require('razorpay');
 //to serve main html file
 exports.baseroot = (req, res, next) => {
   console.log("Serving htmlmain.html");
@@ -83,7 +85,7 @@ exports.fetchexpense = (req, res, next) => {
   // jwt.verify(token, SECRET_KEY, function (err, decoded) {
   //   currentid = decoded.userId // bar
   // });
-  
+
   Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
       res.json(expensedata);
@@ -245,4 +247,83 @@ exports.login = async (req, res, next) => {
   }
 }
 
+exports.buypremium = async (req, res) => {
+  console.log(req.user.id);
+  const rzp = new Razorpay({
+    key_id: "rzp_test_BpGJqLLuHLOWWQ",
+    key_secret: "xSSP7tmZq1Hle782rmCDBRPP",
+  });
+
+  try {
+    rzp.orders.create({ amount: 2500, currency: 'INR' }, async (err, order) => {
+      if (err) {
+        console.error("Error creating order:", err);
+        return res.status(500).json({ error: "Failed to create order" });
+      }
+
+      console.log("Order created successfully:", order);
+
+      try {
+        await req.user.createOrder({ orderId: order.id, status: 'pending' });
+        console.log("Order stored in database successfully");
+
+        return res.status(201).json({
+          order,
+          key_id: rzp.key_id,
+        });
+      } catch (dbError) {
+        console.error("Error saving order to database:", dbError);
+        return res.status(500).json({ error: "Failed to save order in database" });
+      }
+    });
+  } catch (error) {
+    console.error("Error in buypremium:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+exports.updatetransectionstatus = async (req, res) => {
+  try {
+    const { payment_id, order_id } = req.body;
+
+    // Create an array of independent promises to be executed
+    const updatePromises = [
+      // Update order with payment details
+      Order.update(
+        {
+          paymentId: payment_id,
+          status: 'SUCCESSFUL'
+        },
+        {
+          where: { orderId: order_id }
+        }
+      ),
+
+      // Update user premium status
+      Expenseuser.update(
+        { isPremiumUser: true },
+        {
+          where: { id: req.user.id }
+        }
+      )
+    ];
+
+    // Execute all promises concurrently
+    await Promise.all(updatePromises);
+
+    // Send success response
+    return res.status(202).json({
+      success: true,
+      message: "Transaction Successful"
+    });
+
+  } catch (err) {
+    console.error('Error in updateTransactionStatus:', err);
+    return res.status(500).json({
+      success: false,
+      message: "Error processing transaction",
+      error: err.message
+    });
+  }
+};
 //return just breaks execution of next code lines inside function where it used

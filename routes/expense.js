@@ -19,7 +19,7 @@ router.post('adduser', expenseController.adduser);
 router.post('/appointmentData', auth, expenseController.newexpense)
 
 //route to fetch all data
-router.get('/appointmentData', expenseController.fetchexpense)
+router.get('/appointmentData', auth, expenseController.fetchexpense)
 
 
 //route to delete expense
@@ -32,6 +32,10 @@ router.post('/signup', expenseController.signup)
 
 router.post('/login', expenseController.login)
 
+router.get('/purchase/premiummembership', auth, expenseController.buypremium)
+
+router.post('/purchase/updatetransectionstatus', auth, expenseController.updatetransectionstatus)
 router.get('/', expenseController.baseroot);
+
 
 module.exports = router

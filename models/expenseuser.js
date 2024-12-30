@@ -17,9 +17,10 @@ const Expenseuser = sequelize.define('expenseuser', {
     allowNull: true  // Matches NULL constraint in table
   },
   password: {
-    type: Sequelize.STRING(),  // Matches table VARCHAR(45)
+    type: Sequelize.STRING,  // Matches table VARCHAR(45)
     allowNull: true  // Matches NULL constraint in table
   },
+  isPremiumUser: Sequelize.BOOLEAN
 }
 );
 

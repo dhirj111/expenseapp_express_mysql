@@ -1,3 +1,5 @@
+
+
 document.addEventListener("DOMContentLoaded", () => {
   let form = document.getElementById("appointmentForm");
   const ulElements = document.querySelector("ul");
@@ -117,4 +119,32 @@ document.addEventListener("DOMContentLoaded", () => {
     // Add the edit submit listener
     form.addEventListener("submit", editFormSubmit);
   };
+  let premiumbutton = document.getElementById("premium");
+  premiumbutton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    axios.get('http://localhost:5000/purchase/premiummembership', { headers: { token: localStorage.getItem("user jwt") } })
+      .then((response) => {
+        console.log("res112233", response.data)
+        let options = {
+          "key": response.data.key_id, 
+          "order_id":response.data.order.id ,// Enter the Key ID generated from the Dashboard
+          // "amount": response.data.order.amount, // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
+          "currency": "INR",
+          "callback_url": "https://eneqd3r9zrjok.x.pipedream.net/",
+          "handler": async function (response) {
+            console.log("razorwood", response);
+            await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
+
+              //this are not passed correctly  to next middleware 
+              order_id: options.order_id,
+              payment_id: response.razorpay_payment_id
+            }, { headers: { token: localStorage.getItem("user jwt") } })
+            alert("you are premium user now")
+            console.log("you are premium user inde        ed")
+          }
+        }
+        var rzp1 = new Razorpay(options);
+        rzp1.open();
+      })
+  })
 });
