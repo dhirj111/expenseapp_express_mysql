@@ -25,6 +25,42 @@ document.addEventListener("DOMContentLoaded", () => {
           premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
           premiumbutton.innerHTML = 'you are premium user'
 
+          const leaderboardButton = document.createElement("button");
+          // Set the button text
+          leaderboardButton.textContent = "Show Leaderboard";
+          // Set an id for the button (optional, for styling or further functionality)
+          leaderboardButton.id = "leaderboard";
+          // Append the button to the body
+          document.body.appendChild(leaderboardButton);
+          let leaderboardbutton = document.getElementById("leaderboard");
+          leaderboardButton.addEventListener("click", (e) => {
+            axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
+              .then(response => {
+
+                let leaderboardul = document.createElement("ul");
+
+                leaderboardul.id = "leaderboardul";
+                document.body.appendChild(leaderboardul);
+      
+                let leaderboardselected = document.getElementById("leaderboardul");
+                console.log(leaderboardselected);
+                // Iterate through all products and create list items
+                response.data.expensedata.forEach((product) => {
+                  let liitem = document.createElement("li");
+                  liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type}`
+                  liitem.classList.add("bookings1");
+                  leaderboardselected.appendChild(liitem);
+
+
+                })
+
+
+
+
+
+
+              })
+          })
         }
       })
       .catch((error) => {

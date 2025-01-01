@@ -90,7 +90,7 @@ exports.fetchexpense = (req, res, next) => {
   Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
       console.log("expensedata is =======================================", expensedata)
-      res.json({ expensedata:expensedata ,ispremium: req.user.isPremiumUser });
+      res.json({ expensedata: expensedata, ispremium: req.user.isPremiumUser });
     })
     .catch(err => {
       console.log(err)
@@ -330,5 +330,18 @@ exports.updatetransectionstatus = async (req, res) => {
     });
   }
 };
-0
+
+exports.rankwiseexpense = async (req, res) => {
+
+  Product.findAll().then(expensedata => {
+    console.log("expensedata is =======================================", expensedata)
+    res.json({ expensedata: expensedata });
+  })
+    .catch(err => {
+      console.log(err)
+      console.error('Error fetching products:', err);
+      res.status(500).json({ error: "Failed to fetch products" });
+    });
+
+}
 //return just breaks execution of next code lines inside function where it used

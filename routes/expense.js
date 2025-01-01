@@ -35,6 +35,9 @@ router.post('/login', expenseController.login)
 router.get('/purchase/premiummembership', auth, expenseController.buypremium)
 
 router.post('/purchase/updatetransectionstatus', auth, expenseController.updatetransectionstatus)
+
+
+router.get('/rankwiseexpense' , expenseController.rankwiseexpense);
 router.get('/', expenseController.baseroot);
 
 
