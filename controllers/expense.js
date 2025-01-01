@@ -1,14 +1,15 @@
 const { error } = require('console');
 const Product = require('../models/expenses');
-const Order =require('../models/order')
+const Order = require('../models/order')
 //expense is product here
 
 
 let SECRET_KEY = "abc123"
 //its for test purpose and should be not exposed publically
 const jwt = require('jsonwebtoken')
-function generateAccessToken(id) {
-  return jwt.sign({ userId: id }, SECRET_KEY);
+function generateAccessToken(id, isPremiumUser) {
+
+  return jwt.sign({ userId: id, ispremium: isPremiumUser }, SECRET_KEY);
 }
 
 //product here is expense ,
@@ -88,7 +89,8 @@ exports.fetchexpense = (req, res, next) => {
 
   Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
-      res.json(expensedata);
+      console.log("expensedata is =======================================", expensedata)
+      res.json({ expensedata:expensedata ,ispremium: req.user.isPremiumUser });
     })
     .catch(err => {
       console.log(err)
@@ -216,7 +218,7 @@ exports.login = async (req, res, next) => {
 
         if (result) {
           return res.status(201).json({
-            usertoken: generateAccessToken(existingUser.id),
+            usertoken: generateAccessToken(existingUser.id, existingUser.isPremiumUser),
             code: "userverified",
             message: "user logged in succesfully",
             urltoredirect: 'http://localhost:5000/'
@@ -255,7 +257,7 @@ exports.buypremium = async (req, res) => {
   });
 
   try {
-    rzp.orders.create({ amount: 2500, currency: 'INR' }, async (err, order) => {
+    rzp.orders.create({ amount: 3355050, currency: 'INR' }, async (err, order) => {
       if (err) {
         console.error("Error creating order:", err);
         return res.status(500).json({ error: "Failed to create order" });
@@ -283,6 +285,7 @@ exports.buypremium = async (req, res) => {
 };
 
 exports.updatetransectionstatus = async (req, res) => {
+  console.log("payment status and body is", req.body)
   try {
     const { payment_id, order_id } = req.body;
 
@@ -313,6 +316,7 @@ exports.updatetransectionstatus = async (req, res) => {
 
     // Send success response
     return res.status(202).json({
+      usertoken: generateAccessToken(req.user.id, true),
       success: true,
       message: "Transaction Successful"
     });
@@ -326,4 +330,5 @@ exports.updatetransectionstatus = async (req, res) => {
     });
   }
 };
+0
 //return just breaks execution of next code lines inside function where it used

@@ -8,10 +8,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const fetchData = () => {
     axios.get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
+        console.log(response.data)
         // Clear existing list
         ulElements.innerHTML = "";
         // Iterate through all products and create list items
-        response.data.forEach((product) => {
+        response.data.expensedata.forEach((product) => {
           let liitem = document.createElement("li");
           liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type} 
             <button class="edt" type="button" onclick="editEntry(${product.id}, '${product.expense}', '${product.description}', '${product.type}')">edit</button> 
@@ -19,6 +20,12 @@ document.addEventListener("DOMContentLoaded", () => {
           liitem.classList.add("bookings");
           ulElements.appendChild(liitem);
         });
+        if (response.data.ispremium == true) {
+
+          premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
+          premiumbutton.innerHTML = 'you are premium user'
+
+        }
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
@@ -126,8 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((response) => {
         console.log("res112233", response.data)
         let options = {
-          "key": response.data.key_id, 
-          "order_id":response.data.order.id ,// Enter the Key ID generated from the Dashboard
+          "key": response.data.key_id,
+          "order_id": response.data.order.id,// Enter the Key ID generated from the Dashboard
           // "amount": response.data.order.amount, // Amount is in currency subunits. Default currency is INR. Hence, 50000 refers to 50000 paise
           "currency": "INR",
           "callback_url": "https://eneqd3r9zrjok.x.pipedream.net/",
@@ -138,9 +145,30 @@ document.addEventListener("DOMContentLoaded", () => {
               //this are not passed correctly  to next middleware 
               order_id: options.order_id,
               payment_id: response.razorpay_payment_id
-            }, { headers: { token: localStorage.getItem("user jwt") } })
+            }, { headers: { token: localStorage.getItem("user jwt") } }).then(res => {
+              localStorage.setItem("user jwt", res.data.usertoken)
+
+
+            })
             alert("you are premium user now")
-            console.log("you are premium user inde        ed")
+            premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
+            premiumbutton.innerHTML = 'you are premium user'
+            console.log("you are premium user indeed")
+          },
+          "modal": {
+            "ondismiss": async function () {
+              try {
+                await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
+                  order_id: options.order_id,
+                  payment_status: 'FAILED'
+                }, {
+                  headers: { token: localStorage.getItem("user jwt") }
+                });
+                alert("Payment cancelled or failed. Please try again.");
+              } catch (error) {
+                console.error("Error updating failed payment status:", error);
+              }
+            }
           }
         }
         var rzp1 = new Razorpay(options);
