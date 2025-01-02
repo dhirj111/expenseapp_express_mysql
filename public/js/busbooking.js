@@ -1,6 +1,7 @@
 
 
 document.addEventListener("DOMContentLoaded", () => {
+  let isLeaderboardLoaded = false;
   let form = document.getElementById("appointmentForm");
   const ulElements = document.querySelector("ul");
 
@@ -34,32 +35,27 @@ document.addEventListener("DOMContentLoaded", () => {
           document.body.appendChild(leaderboardButton);
           let leaderboardbutton = document.getElementById("leaderboard");
           leaderboardButton.addEventListener("click", (e) => {
+            if (isLeaderboardLoaded) {
+              alert("Leaderboard is already displayed!");
+              return;
+            }
             axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
               .then(response => {
-
+                console.log(response.data)
                 let leaderboardul = document.createElement("ul");
-
                 leaderboardul.id = "leaderboardul";
                 document.body.appendChild(leaderboardul);
-      
                 let leaderboardselected = document.getElementById("leaderboardul");
-                console.log(leaderboardselected);
-                // Iterate through all products and create list items
-                response.data.expensedata.forEach((product) => {
+                leaderboardselected.innerHTML = "";
+                for (let i = 0; i < 5; i++) {
+                  let product = response.data.expensedata[i];
                   let liitem = document.createElement("li");
-                  liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type}`
+                  liitem.innerHTML = `${product.expense} - ${product.description} - ${product.expenseuser.name}`
                   liitem.classList.add("bookings1");
                   leaderboardselected.appendChild(liitem);
-
-
-                })
-
-
-
-
-
-
+                }
               })
+            isLeaderboardLoaded = true;
           })
         }
       })
@@ -76,7 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const defaultFormSubmit = (event) => {
     event.preventDefault();
     let selectElement = document.querySelector("#type");
-
     //stored value in category
     let etype =
       selectElement.options[selectElement.options.selectedIndex].textContent;
@@ -92,6 +87,7 @@ document.addEventListener("DOMContentLoaded", () => {
       .then((response) => {
         alert('Product created successfully!');
         fetchData(); // Refresh the list
+        isLeaderboardLoaded = false;
         form.reset(); // Clear the form
       })
       .catch((error) => {
@@ -105,7 +101,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Delete entry function
   window.deleteEntry = (id) => {
-    console.log("dele etet  is           cl i     c ked")
     axios
       .delete(`http://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {

@@ -332,8 +332,15 @@ exports.updatetransectionstatus = async (req, res) => {
 };
 
 exports.rankwiseexpense = async (req, res) => {
-
-  Product.findAll().then(expensedata => {
+  Product.findAll({
+    order: [['expense', 'DESC']],
+    include: [
+      {
+        model:Expenseuser, // Assuming `Users` is the Sequelize model for the Users table
+        attributes: ['name'] // Fetch only the name column from the Users table
+      }
+    ]
+  }).then(expensedata => {
     console.log("expensedata is =======================================", expensedata)
     res.json({ expensedata: expensedata });
   })
