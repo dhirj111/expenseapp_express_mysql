@@ -45,48 +45,44 @@ exports.adduser = (req, res, next) => {
 }
 
 // Route for handling appointment data of newly added expense
-exports.newexpense = (req, res, next) => {
+exports.newexpense = async (req, res) => {
+  try {
+    const { expense, description, type } = req.body;
 
-  console.log("Received data at /appointmentData");
-  console.log("user attached with req of middleware", req.user.id, "   ", req.body.user)
-  const { expense, description, type } = req.body;
+    // Perform both operations in parallel
+    const [newExpense, userUpdate] = await Promise.all([
+      // Create new expense
+      Product.create({
+        expense,
+        description,
+        type,
+        expenseuserId: req.user.id,
+        name: req.user.name
+      }),
 
-  // let currentid;
-  // let token = req.headers.token;
-  // jwt.verify(token, SECRET_KEY, function (err, decoded) {
-  //   currentid = decoded.userId // bar
-  // });
+      // Update user's total
+      Expenseuser.increment('totalsum', {
+        by: expense,
+        where: { id: req.user.id }
+      })
+    ]);
 
-  //.create is sequlize method , which  we are using right now in models expense.js exported module
-  //similary it worked in other middlewares for delete as destroy , findAll or getting full db
-  //and update for updating data
- Product.create({
-    expense: expense,
-    description: description,
-    type: type,
-    expenseuserId: req.user.id,
-    name: req.user.name
-  })
-    .then(result => {
-      console.log('Created Product:', result);
-      res.status(201).json({
-        message: "Product created successfully",
-        product: result
-      });
-    })
-    .catch(err => {
-      console.error('Error creating product:', err);
-      res.status(500).json({ error: "Failed to create product", details: err.message });
+    res.status(201).json({
+      message: "Expense created successfully",
+      expense: newExpense
     });
-}
+
+  } catch (err) {
+    console.error('Error:', err);
+    res.status(500).json({
+      error: "Failed to create expense",
+      details: err.message
+    });
+  }
+};
 
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
-  // let currentid;
-  // let token = req.headers['token']
-  // jwt.verify(token, SECRET_KEY, function (err, decoded) {
-  //   currentid = decoded.userId // bar
-  // });
 
   Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
@@ -184,7 +180,8 @@ exports.signup = async (req, res, next) => {
       Expenseuser.create({
         name: name,
         email: email,
-        password: hash
+        password: hash,
+        totalsum: 0
       });
     });
 
@@ -333,10 +330,11 @@ exports.updatetransectionstatus = async (req, res) => {
 };
 
 exports.rankwiseexpense = async (req, res) => {
-  Product.findAll({
-    order: [['expense', 'DESC']],
+  Expenseuser.findAll({
+    order: [['totalsum', 'DESC']],
+    attributes: ['name', 'totalsum'],
+    limit: 5 
   }).then(expensedata => {
-    console.log("expensedata is =======================================", expensedata)
     res.json({ expensedata: expensedata });
   })
     .catch(err => {
@@ -344,6 +342,5 @@ exports.rankwiseexpense = async (req, res) => {
       console.error('Error fetching products:', err);
       res.status(500).json({ error: "Failed to fetch products" });
     });
-
 }
 //return just breaks execution of next code lines inside function where it used
