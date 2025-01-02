@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 for (let i = 0; i < 5; i++) {
                   let product = response.data.expensedata[i];
                   let liitem = document.createElement("li");
-                  liitem.innerHTML = `${product.expense} - ${product.description} - ${product.expenseuser.name}`
+                  liitem.innerHTML = `${product.expense} - ${product.description} - ${product.name}`
                   liitem.classList.add("bookings1");
                   leaderboardselected.appendChild(liitem);
                 }

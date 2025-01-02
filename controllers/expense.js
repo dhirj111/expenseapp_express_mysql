@@ -60,11 +60,12 @@ exports.newexpense = (req, res, next) => {
   //.create is sequlize method , which  we are using right now in models expense.js exported module
   //similary it worked in other middlewares for delete as destroy , findAll or getting full db
   //and update for updating data
-  Product.create({
+ Product.create({
     expense: expense,
     description: description,
     type: type,
-    expenseuserId: req.user.id
+    expenseuserId: req.user.id,
+    name: req.user.name
   })
     .then(result => {
       console.log('Created Product:', result);
@@ -334,12 +335,6 @@ exports.updatetransectionstatus = async (req, res) => {
 exports.rankwiseexpense = async (req, res) => {
   Product.findAll({
     order: [['expense', 'DESC']],
-    include: [
-      {
-        model:Expenseuser, // Assuming `Users` is the Sequelize model for the Users table
-        attributes: ['name'] // Fetch only the name column from the Users table
-      }
-    ]
   }).then(expensedata => {
     console.log("expensedata is =======================================", expensedata)
     res.json({ expensedata: expensedata });

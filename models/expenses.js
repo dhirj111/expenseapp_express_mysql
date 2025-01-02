@@ -20,6 +20,10 @@ const Product = sequelize.define('expensedata', {
     type: Sequelize.STRING(45),  // Matches table VARCHAR(45)
     allowNull: true  // Matches NULL constraint in table
   },
+  name: {
+    type: Sequelize.STRING(45),  // Matches table VARCHAR(45)
+    allowNull: true  // Matches NULL constraint in table
+  },
   created_at: {
     type: Sequelize.DATE,
     defaultValue: Sequelize.NOW,  // Ensures automatic timestamp
