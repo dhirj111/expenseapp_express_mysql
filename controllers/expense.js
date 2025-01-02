@@ -2,7 +2,8 @@ const { error } = require('console');
 const Product = require('../models/expenses');
 const Order = require('../models/order')
 //expense is product here
-
+const Sequelize = require('sequelize');
+const sequelize = require('../util/database');
 
 let SECRET_KEY = "abc123"
 //its for test purpose and should be not exposed publically
@@ -45,27 +46,40 @@ exports.adduser = (req, res, next) => {
 }
 
 // Route for handling appointment data of newly added expense
-exports.newexpense = async (req, res) => {
+exports.newexpense = async (req, res, next) => {
+  const t = await sequelize.transaction();
+
   try {
+    console.log("Received data at /appointmentData");
+    console.log("user attached with req of middleware", req.user.id, " ", req.body.user);
+
     const { expense, description, type } = req.body;
 
-    // Perform both operations in parallel
-    const [newExpense, userUpdate] = await Promise.all([
-      // Create new expense
-      Product.create({
-        expense,
-        description,
-        type,
-        expenseuserId: req.user.id,
-        name: req.user.name
-      }),
+    // Create new expense
+    const newExpense = await Product.create({
+      expense: expense,
+      description: description,
+      type: type,
+      expenseuserId: req.user.id,
+      name: req.user.name
+    }, { transaction: t });
 
-      // Update user's total
-      Expenseuser.increment('totalsum', {
-        by: expense,
-        where: { id: req.user.id }
-      })
-    ]);
+    // Get current user to access current totalsum
+    const user = await Expenseuser.findByPk(req.user.id, { transaction: t });
+
+    // Update user's totalsum
+    await Expenseuser.update(
+      {
+        totalsum: (user.totalsum || 0) +expense
+      },
+      {
+        where: { id: req.user.id },
+      },
+      { transaction: t }
+    );
+
+    // Commit transaction
+    await t.commit();
 
     res.status(201).json({
       message: "Expense created successfully",
@@ -73,14 +87,16 @@ exports.newexpense = async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Error:', err);
+    // Rollback transaction on error
+    await t.rollback();
+
+    console.error('Error creating expense:', err);
     res.status(500).json({
       error: "Failed to create expense",
       details: err.message
     });
   }
 };
-
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
 
@@ -126,33 +142,41 @@ exports.deleteexpense = (req, res, next) => {
     });
 }
 //route to update expense
-exports.updateexpense = (req, res, next) => {
+exports.updateexpense = async (req, res, next) => {
+
+  const t = await sequelize.transaction();
   //way to fetch id from route is req.params.id
   //way to get object passed along with data is req.body
   const productId = req.params.id;
   const { expense, description, type } = req.body;
 
-  Product.update(
+  await Product.update(
     { expense, description, type },
-    { where: { id: productId } }
+    { where: { id: productId } },
+    { transaction: t }
   )
     .then(([updatedCount]) => {
       if (updatedCount > 0) {
-        return Product.findByPk(productId);
+        return Product.findByPk(productId, { transaction: t });
       } else {
         throw new Error('Product not found');
       }
-    })
+    }
+    )
+
     .then(updatedProduct => {
+
       res.json({ message: "Product updated successfully", product: updatedProduct });
     })
     .catch(err => {
+
       console.error('Error updating product:', err);
       res.status(500).json({ error: "Failed to update product" });
     });
 
 }
 exports.signup = async (req, res, next) => {
+  const t = await sequelize.transaction();
   const saltRounds = 10;
   //salt is an string/whatver added to  password which increases randomness of password
   //even for same password each time to increase safety
@@ -162,7 +186,7 @@ exports.signup = async (req, res, next) => {
     // Check if user with email already exists
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
-    });
+    }, { transaction: t });
 
     if (existingUser) {
       console.log('Account already exists for email:', email);
@@ -182,15 +206,16 @@ exports.signup = async (req, res, next) => {
         email: email,
         password: hash,
         totalsum: 0
-      });
+      }, { transaction: t });
     });
-
+    await t.commit();
     // console.log('Created User:', newUser);
     res.status(201).json({
       message: "User created successfully"
     });
 
   } catch (err) {
+    await t.rollback()
     console.error('Error in signup:', err);
     res.status(500).json({
       error: "Failed to process signup",
@@ -210,7 +235,7 @@ exports.login = async (req, res, next) => {
 
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
-    });
+    }, { transaction: t });
     if (existingUser) {
       bcrypt.compare(password, existingUser.password).then(function (result) {
 
@@ -248,6 +273,7 @@ exports.login = async (req, res, next) => {
 }
 
 exports.buypremium = async (req, res) => {
+  const t = await sequelize.transaction();
   console.log(req.user.id);
   const rzp = new Razorpay({
     key_id: "rzp_test_BpGJqLLuHLOWWQ",
@@ -264,25 +290,29 @@ exports.buypremium = async (req, res) => {
       console.log("Order created successfully:", order);
 
       try {
-        await req.user.createOrder({ orderId: order.id, status: 'pending' });
+        await req.user.createOrder({ orderId: order.id, status: 'pending' }, { transaction: t });
         console.log("Order stored in database successfully");
+        await t.commit();
 
         return res.status(201).json({
           order,
           key_id: rzp.key_id,
         });
       } catch (dbError) {
+
         console.error("Error saving order to database:", dbError);
         return res.status(500).json({ error: "Failed to save order in database" });
       }
     });
   } catch (error) {
+    await t.rollback()
     console.error("Error in buypremium:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
 
 exports.updatetransectionstatus = async (req, res) => {
+  const t = await sequelize.transaction();
   console.log("payment status and body is", req.body)
   try {
     const { payment_id, order_id } = req.body;
@@ -297,7 +327,8 @@ exports.updatetransectionstatus = async (req, res) => {
         },
         {
           where: { orderId: order_id }
-        }
+        },
+        { transaction: t }
       ),
 
       // Update user premium status
@@ -305,12 +336,15 @@ exports.updatetransectionstatus = async (req, res) => {
         { isPremiumUser: true },
         {
           where: { id: req.user.id }
-        }
+        },
+        { transaction: t }
+
       )
     ];
 
     // Execute all promises concurrently
     await Promise.all(updatePromises);
+    await t.commit();
 
     // Send success response
     return res.status(202).json({
@@ -320,6 +354,7 @@ exports.updatetransectionstatus = async (req, res) => {
     });
 
   } catch (err) {
+    await t.rollback()
     console.error('Error in updateTransactionStatus:', err);
     return res.status(500).json({
       success: false,
@@ -333,7 +368,7 @@ exports.rankwiseexpense = async (req, res) => {
   Expenseuser.findAll({
     order: [['totalsum', 'DESC']],
     attributes: ['name', 'totalsum'],
-    limit: 5 
+    limit: 5
   }).then(expensedata => {
     res.json({ expensedata: expensedata });
   })
