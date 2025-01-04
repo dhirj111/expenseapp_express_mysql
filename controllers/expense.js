@@ -55,35 +55,39 @@ exports.newexpense = async (req, res, next) => {
 
     const { expense, description, type } = req.body;
 
-    // Create new expense
+    // Get current user with totalsum
+    const user = await Expenseuser.findByPk(req.user.id, { transaction: t });
+
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({
+        error: 'User not found'
+      });
+    }
+
+    // Create new expense within transaction
     const newExpense = await Product.create({
-      expense: expense,
-      description: description,
-      type: type,
+      expense: Number(expense),
+      description: description.trim(),
+      type: type.toLowerCase(),
       expenseuserId: req.user.id,
       name: req.user.name
     }, { transaction: t });
 
-    // Get current user to access current totalsum
-    const user = await Expenseuser.findByPk(req.user.id, { transaction: t });
+    // Calculate new total based on expense type
+    const newTotal = type.toLowerCase() === 'income'? (user.totalsum || 0) + Number(expense): (user.totalsum || 0) - Number(expense);
 
-    // Update user's totalsum
-    await Expenseuser.update(
-      {
-        totalsum: (user.totalsum || 0) +expense
-      },
-      {
-        where: { id: req.user.id },
-      },
-      { transaction: t }
-    );
+    // Update user's totalsum within transaction
+    await user.update({ totalsum: newTotal }, { transaction: t });
 
     // Commit transaction
     await t.commit();
 
-    res.status(201).json({
-      message: "Expense created successfully",
-      expense: newExpense
+    // Send success response
+    return res.status(201).json({
+      message: "Expense recorded successfully",
+      expense: newExpense,
+      currentBalance: newTotal
     });
 
   } catch (err) {
@@ -91,18 +95,18 @@ exports.newexpense = async (req, res, next) => {
     await t.rollback();
 
     console.error('Error creating expense:', err);
-    res.status(500).json({
-      error: "Failed to create expense",
-      details: err.message
+
+    // Send appropriate error response
+    return res.status(500).json({
+      error: "Failed to record expense",
+      details: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
     });
   }
 };
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
-
   Product.findAll({ where: { expenseuserId: req.user.id } })
     .then(expensedata => {
-      console.log("expensedata is =======================================", expensedata)
       res.json({ expensedata: expensedata, ispremium: req.user.isPremiumUser });
     })
     .catch(err => {
@@ -114,7 +118,6 @@ exports.fetchexpense = (req, res, next) => {
 
 //route to delete expense
 exports.deleteexpense = (req, res, next) => {
-
   let currentid;
   let token = req.headers['token']
   jwt.verify(token, SECRET_KEY, function (err, decoded) {
@@ -123,9 +126,7 @@ exports.deleteexpense = (req, res, next) => {
   //way to fetch id from route is req.params.id
   const productId = req.params.id;
   const userfromrequest = req.params.expenseuserId;
-  // if (userfromrequest != currentid) {
-  //   return res.status(404).json({ error: "you can't delete someone else expenses" });
-  // }
+
   Product.destroy({
     where: { id: productId }
   })
@@ -143,7 +144,6 @@ exports.deleteexpense = (req, res, next) => {
 }
 //route to update expense
 exports.updateexpense = async (req, res, next) => {
-
   const t = await sequelize.transaction();
   //way to fetch id from route is req.params.id
   //way to get object passed along with data is req.body
@@ -190,6 +190,7 @@ exports.signup = async (req, res, next) => {
 
     if (existingUser) {
       console.log('Account already exists for email:', email);
+      await t.rollback();
       return res.status(409).json({
         error: "Account already exists",
         message: "An account with this email already exists"
@@ -197,25 +198,23 @@ exports.signup = async (req, res, next) => {
     }
 
     // If email doesn't exist, create new user
-
-    bcrypt.hash(password, saltRounds, await function (err, hash) {
-      // Store hash in your password DB.
-
-      Expenseuser.create({
-        name: name,
-        email: email,
-        password: hash,
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+    await Expenseuser.create(
+      {
+        name,
+        email,
+        password: hashedPassword,
         totalsum: 0
-      }, { transaction: t });
-    });
+      },
+      { transaction: t }
+    );
+
     await t.commit();
-    // console.log('Created User:', newUser);
     res.status(201).json({
       message: "User created successfully"
     });
-
   } catch (err) {
-    await t.rollback()
+    await t.rollback();
     console.error('Error in signup:', err);
     res.status(500).json({
       error: "Failed to process signup",
@@ -224,10 +223,7 @@ exports.signup = async (req, res, next) => {
   }
 };
 
-//async declaration
-//try executes code inside block
-// await make it wait till end
-// catch any error in execution of whole async declared function
+
 exports.login = async (req, res, next) => {
   console.log(req.body)
   try {
@@ -235,7 +231,7 @@ exports.login = async (req, res, next) => {
 
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
-    }, { transaction: t });
+    });
     if (existingUser) {
       bcrypt.compare(password, existingUser.password).then(function (result) {
 

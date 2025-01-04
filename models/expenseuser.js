@@ -21,8 +21,7 @@ const Expenseuser = sequelize.define('expenseuser', {
     allowNull: true  // Matches NULL constraint in table
   },
   totalsum: {
-
-    type: Sequelize.STRING,  // Matches table VARCHAR(45)
+    type: Sequelize.INTEGER,  // Matches table VARCHAR(45)
     allowNull: true  //
   },
   isPremiumUser: Sequelize.BOOLEAN
