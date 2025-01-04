@@ -5,6 +5,14 @@ const Order = require('../models/order')
 const Sequelize = require('sequelize');
 const sequelize = require('../util/database');
 
+const brevo = require('@getbrevo/brevo');
+const Sib = require('sib-api-v3-sdk')
+let Client = Sib.ApiClient.instance;
+
+let apiKey = Client.authentications['api-key'];
+apiKey.apiKey = "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"
+
+
 let SECRET_KEY = "abc123"
 //its for test purpose and should be not exposed publically
 const jwt = require('jsonwebtoken')
@@ -38,9 +46,9 @@ exports.baserootlogin = (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 }
 
-exports.baseforget =(req, res ,next)=>{
-console.log("serving password to reset password")
-res.sendFile(path.join(__dirname, '..', 'public', 'forget.html'));
+exports.baseforget = (req, res, next) => {
+  console.log("serving password to reset password")
+  res.sendFile(path.join(__dirname, '..', 'public', 'forget.html'));
 }
 
 // Route for adding a user
@@ -80,7 +88,7 @@ exports.newexpense = async (req, res, next) => {
     }, { transaction: t });
 
     // Calculate new total based on expense type
-    const newTotal = type.toLowerCase() === 'income'? (user.totalsum || 0) + Number(expense): (user.totalsum || 0) - Number(expense);
+    const newTotal = type.toLowerCase() === 'income' ? (user.totalsum || 0) + Number(expense) : (user.totalsum || 0) - Number(expense);
 
     // Update user's totalsum within transaction
     await user.update({ totalsum: newTotal }, { transaction: t });
@@ -380,16 +388,32 @@ exports.rankwiseexpense = async (req, res) => {
     });
 }
 
-exports.resetpassword =async(req ,res)=>{
-console.log(req.body.email)
-  try{
+exports.resetpassword = async (req, res) => {
+  try {
+    console.log("Starting password reset process");
 
+    let apiInstance = new Sib.TransactionalEmailsApi();
+    let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
 
-    console.log("reached till reset passowrd controller")
+    sendSmtpEmail.subject = "My {{params.subject}}";
+    sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1></body></html>";
+    sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
+    sendSmtpEmail.to = [
+      { "email": req.body.email, "name": "sample-name" }
+    ];
+    sendSmtpEmail.replyTo = { "email": "example@brevo.com", "name": "sample-name" };
+    sendSmtpEmail.headers = { "Some-Custom-Name": "unique-id-1234" };
+    sendSmtpEmail.params = { "parameter": "My param value", "subject": "common subject" };
+
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log('Email sent successfully:', JSON.stringify(result));
+    res.status(200).json({ message: 'Password reset email sent' });
+
+  } catch (error) {
+    console.error('Error sending email:', error);
+    res.status(500).json({
+      error: 'Failed to send password reset email',
+      details: error.message
+    });
   }
-  catch{
-
-
-  }
-}
-//return just breaks execution of next code lines inside function where it used
+};
