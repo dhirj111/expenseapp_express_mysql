@@ -38,6 +38,11 @@ exports.baserootlogin = (req, res, next) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 }
 
+exports.baseforget =(req, res ,next)=>{
+console.log("serving password to reset password")
+res.sendFile(path.join(__dirname, '..', 'public', 'forget.html'));
+}
+
 // Route for adding a user
 exports.adduser = (req, res, next) => {
   console.log("Request received at /adduser");
@@ -373,5 +378,18 @@ exports.rankwiseexpense = async (req, res) => {
       console.error('Error fetching products:', err);
       res.status(500).json({ error: "Failed to fetch products" });
     });
+}
+
+exports.resetpassword =async(req ,res)=>{
+console.log(req.body.email)
+  try{
+
+
+    console.log("reached till reset passowrd controller")
+  }
+  catch{
+
+
+  }
 }
 //return just breaks execution of next code lines inside function where it used

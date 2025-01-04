@@ -12,6 +12,8 @@ const router = express.Router();
 router.get('/sign', expenseController.baserootsignup);
 
 router.get('/login', expenseController.baserootlogin);
+
+router.get('/forget' , expenseController.baseforget);
 // Route for adding a user
 router.post('adduser', expenseController.adduser);
 
@@ -32,12 +34,17 @@ router.post('/signup', expenseController.signup)
 
 router.post('/login', expenseController.login)
 
+
+
 router.get('/purchase/premiummembership', auth, expenseController.buypremium)
 
 router.post('/purchase/updatetransectionstatus', auth, expenseController.updatetransectionstatus)
 
 
 router.get('/rankwiseexpense' , expenseController.rankwiseexpense);
+
+router.post('/password/forgetpassword' ,expenseController.resetpassword)
+
 router.get('/', expenseController.baseroot);
 
 
