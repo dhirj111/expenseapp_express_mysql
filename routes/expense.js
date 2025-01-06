@@ -13,7 +13,7 @@ router.get('/sign', expenseController.baserootsignup);
 
 router.get('/login', expenseController.baserootlogin);
 
-router.get('/forget' , expenseController.baseforget);
+router.get('/forget', expenseController.baseforget);
 // Route for adding a user
 router.post('adduser', expenseController.adduser);
 
@@ -41,10 +41,13 @@ router.get('/purchase/premiummembership', auth, expenseController.buypremium)
 router.post('/purchase/updatetransectionstatus', auth, expenseController.updatetransectionstatus)
 
 
-router.get('/rankwiseexpense' , expenseController.rankwiseexpense);
+router.get('/rankwiseexpense', expenseController.rankwiseexpense);
 
-router.post('/password/forgetpassword' ,expenseController.resetpassword)
+// router.post('/password/forgetpassword' ,expenseController.resetpassword)
 
+router.post('/password/forgetpassword', expenseController.postresetpassword)
+router.get('/password/forgetpassword/:id', expenseController.getresetpasword)
+router.post('/password/linkandurl', expenseController.linkandurl)
 router.get('/', expenseController.baseroot);
 
 

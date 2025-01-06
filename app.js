@@ -2,6 +2,8 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
+const { v4: uuidv4 } = require('uuid');
+uuidv4();
 const app = express();
 
 // Middleware in the correct order
@@ -13,12 +15,20 @@ const sequelize = require('./util/database');
 
 const Expense = require('./models/expenses');
 const Expenseuser = require('./models/expenseuser');
+const ForgotPasswordRequests = require('./models/ForgotPasswordRequests');
 
 Expense.belongsTo(Expenseuser)
+
 Expenseuser.hasMany(Expense)
 
+ForgotPasswordRequests.belongsTo(Expenseuser);
+
+Expenseuser.hasMany(ForgotPasswordRequests)
+
 const Order = require('./models/order');
+
 Expenseuser.hasMany(Order);
+
 Order.belongsTo(Expenseuser)
 //defiend new relations with user and order after improting it
 const adminRoutes = require('./routes/expense');

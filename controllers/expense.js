@@ -1,16 +1,17 @@
 const { error } = require('console');
 const Product = require('../models/expenses');
 const Order = require('../models/order')
+const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
 //expense is product here
 const Sequelize = require('sequelize');
 const sequelize = require('../util/database');
+const { v4: uuidv4 } = require('uuid');
 
-const brevo = require('@getbrevo/brevo');
 const Sib = require('sib-api-v3-sdk')
 let Client = Sib.ApiClient.instance;
 
 let apiKey = Client.authentications['api-key'];
-apiKey.apiKey = //apikey here
+apiKey.apiKey = "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"
 
 
 let SECRET_KEY = "abc123"
@@ -178,7 +179,6 @@ exports.updateexpense = async (req, res, next) => {
     )
 
     .then(updatedProduct => {
-
       res.json({ message: "Product updated successfully", product: updatedProduct });
     })
     .catch(err => {
@@ -388,7 +388,29 @@ exports.rankwiseexpense = async (req, res) => {
     });
 }
 
-exports.resetpassword = async (req, res) => {
+exports.postresetpassword = async (req, res) => {
+  // const linkparameter = req.params.id;
+  // console.log("hiited reset  password first")
+  // let uid;
+  // if (linkparameter == 0) {
+  await Expenseuser.findOne({ where: { email: req.body.email } })
+    .then(res => { uid = res.id })
+  let uniqueid = uuidv4();
+  let uniquelink = "http://localhost:4000/resetpassword/" + uniqueid;
+  console.log(uniquelink)
+  ForgotPasswordRequests.create({
+    uuid: uniqueid,
+    isactive: true,
+    expenseuserId: uid
+  })
+  // else {
+  //   await ForgotPasswordRequests.findByPk(linkparameter).then(res=>{
+  //     res.redirect( )
+  //   })
+  //   console.log(u12,"      iiiiiiiii    iii              iiiiiiiii         ")
+  //   //if link is not zero then provide reset password form
+
+  // }
   try {
     console.log("Starting password reset process");
 
@@ -396,7 +418,7 @@ exports.resetpassword = async (req, res) => {
     let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
 
     sendSmtpEmail.subject = "My {{params.subject}}";
-    sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1></body></html>";
+    sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href=uniquelink>reset link</a></body></html>";
     sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
     sendSmtpEmail.to = [
       { "email": req.body.email, "name": "sample-name" }
@@ -417,3 +439,50 @@ exports.resetpassword = async (req, res) => {
     });
   }
 };
+
+exports.getresetpasword = (req, res) => {
+  console.log("Serving singup.html");
+  res.sendFile(path.join(__dirname, '..', 'public', 'linkpass.html'));
+}
+exports.linkandurl = async (req, res) => {
+  let currentuser;
+  await ForgotPasswordRequests.findByPk(req.body.sid).then(res => {
+    currentuser = res;
+  })
+  if (!currentuser) {
+    console.log(" 770")
+    return res.status(500).json({
+      custommessage: 'invalid link'
+    })
+  }
+  try {
+    if (currentuser.isactive != 1) {
+      console.log(" 771")
+      return res.status(500).json({
+        custommessage: 'link is not active ,please generate new link',
+      });
+    }
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+    await Expenseuser.update(
+      { password: hashedPassword },
+      {
+        where: { id: currentuser.expenseuserId }
+      }
+    )
+    await ForgotPasswordRequests.update(
+      { isactive: false },
+      {
+        where: { uuid: currentuser.uuid }
+      }
+
+    )
+    res.status(200).json({ message: 'Password reset succesfully' });
+  }
+  catch {
+    console.log(" 772")
+    res.status(500).json({
+      error: 'Failed to send password reset email',
+      custommessage: error.message
+    });
+  }
+}
