@@ -38,8 +38,7 @@ function uploadToS3(data, filename) {
 
 
 
-let apiKey = Client.authentications['api-key'];
-apiKey.apiKey = "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"
+
 
 
 let SECRET_KEY = "abc123"
