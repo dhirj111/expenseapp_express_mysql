@@ -6,9 +6,44 @@ const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
 const Sequelize = require('sequelize');
 const sequelize = require('../util/database');
 const { v4: uuidv4 } = require('uuid');
-
+const { Op } = require("sequelize");
 const Sib = require('sib-api-v3-sdk')
+const AWS = require('aws-sdk');
 let Client = Sib.ApiClient.instance;
+const IAM_USER_KEY = "AKIAUMYCIQWVNIKDEVM2"
+const IAM_USER_SECRET = "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"
+let s3bucket = new AWS.S3({
+  //  this is just instance of server
+  accessKeyId: IAM_USER_KEY,
+  secretAccessKey: IAM_USER_SECRET,
+})
+
+function uploadToS3(data, filename) {
+  const BUCKET_NAME = "testbucket102030po"
+
+
+  var params = {
+    Bucket: BUCKET_NAME,
+    Key: filename,
+    Body: data
+  }
+
+  return new Promise((resolve, reject) => {
+
+    s3bucket.upload(params, (err, s3response) => {
+      if (err) {
+        console.log(err)
+        reject(err)
+      }
+      else {
+        console.log(s3response)
+        resolve(s3response.Location);
+      }
+    })
+  })
+}
+
+
 
 let apiKey = Client.authentications['api-key'];
 apiKey.apiKey = "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"
@@ -484,5 +519,54 @@ exports.linkandurl = async (req, res) => {
       error: 'Failed to send password reset email',
       custommessage: error.message
     });
+  }
+}
+
+exports.reportpagefrontend = (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'reports.html'));
+}
+
+exports.datedexpense = (req, res) => {
+  const { Op, fn, col } = require('sequelize');
+  // Start of the day (2025-01-04 00:00:00)
+  const startDate = new Date("2025-01-04 00:00:00");
+  // End of the day (2025-01-04 23:59:59)
+  const endDate = new Date("2025-01-04 23:59:59");
+  // Sequelize query
+
+  Product.findAll({
+    where: {
+      created_at: {
+        [Op.between]: [startDate, endDate]
+      }
+    },
+    attributes: {
+      include: [
+        [fn('DATE_FORMAT', col('created_at'), '%d-%m-%Y'), 'formatted_date'] // Format date as dd-mm-yyyy
+      ]
+    }
+  }).then(expensedata => {
+    res.json({ expensedata: expensedata });
+  }).catch(err => {
+    console.error(err);
+  });
+}
+
+exports.downloadexpenses = async (req, res) => {
+
+  try {
+    const expenses = await req.user.getExpensedata(); // Magic method
+    console.log("            attacked          ", expenses);
+    const stringified = JSON.stringify(expenses);
+    const filename = `expense${new Date()}.txt`
+    console.log(stringified)
+    const fileurl = await uploadToS3(stringified, filename)
+    res.status(200).json({ fileurl, success: true })
+
+  }
+  catch (err) {
+    console.log(err)
+    res.status(501).json({ error: err })
+
   }
 }

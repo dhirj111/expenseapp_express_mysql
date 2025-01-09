@@ -17,9 +17,9 @@ const Expense = require('./models/expenses');
 const Expenseuser = require('./models/expenseuser');
 const ForgotPasswordRequests = require('./models/ForgotPasswordRequests');
 
-Expense.belongsTo(Expenseuser)
+Expense.belongsTo(Expenseuser, { foreignKey: 'expenseuserId' })
 
-Expenseuser.hasMany(Expense)
+Expenseuser.hasMany(Expense, { foreignKey: 'expenseuserId' })
 
 ForgotPasswordRequests.belongsTo(Expenseuser);
 

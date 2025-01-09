@@ -43,12 +43,13 @@ router.post('/purchase/updatetransectionstatus', auth, expenseController.updatet
 
 router.get('/rankwiseexpense', expenseController.rankwiseexpense);
 
-// router.post('/password/forgetpassword' ,expenseController.resetpassword)
 
 router.post('/password/forgetpassword', expenseController.postresetpassword)
 router.get('/password/forgetpassword/:id', expenseController.getresetpasword)
 router.post('/password/linkandurl', expenseController.linkandurl)
 router.get('/', expenseController.baseroot);
+router.get("/report", expenseController.reportpagefrontend)
+router.get("/datedexpense",auth , expenseController.datedexpense)
 
-
+router.get("/downloadexpenses" ,auth ,expenseController.downloadexpenses)
 module.exports = router

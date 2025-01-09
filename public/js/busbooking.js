@@ -1,10 +1,9 @@
 
-
 document.addEventListener("DOMContentLoaded", () => {
   let isLeaderboardLoaded = false;
   let form = document.getElementById("appointmentForm");
   const ulElements = document.querySelector("ul");
-
+  let reportsul = document.getElementById("reports")
   // Fetch all existing entries
   const fetchData = () => {
     axios.get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
@@ -157,6 +156,27 @@ document.addEventListener("DOMContentLoaded", () => {
     // Add the edit submit listener
     form.addEventListener("submit", editFormSubmit);
   };
+
+
+  let downloadbutton = document.getElementById("downloadexpense")
+  downloadbutton.addEventListener("click", (event) => {
+    event.preventDefault();
+    axios.get('http://localhost:5000/downloadexpenses', { headers: { token: localStorage.getItem("user jwt") } })
+      .then((response) => {
+        // let leaderboardul = document.createElement("ul");
+        // leaderboardul.id = "leaderboardul";
+        // document.body.appendChild(leaderboardul);
+        // let leaderboardselected = document.getElementById("leaderboardul");
+        // leaderboardselected.innerHTML = "";
+        let reportli = document.createElement("li");
+        reportli.innerHTML = `<a href=${response.data.fileurl}>${response.data.fileurl}</a>`
+        reportsul.appendChild(reportli)
+        console.log(response)
+      }).catch(err => {
+        console.log(err)
+      })
+
+  })
   let premiumbutton = document.getElementById("premium");
   premiumbutton.addEventListener("click", async (event) => {
     event.preventDefault();

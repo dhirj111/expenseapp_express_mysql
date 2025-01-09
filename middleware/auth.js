@@ -3,10 +3,11 @@ const Expenseuser = require('../models/expenseuser')
 let SECRET_KEY = "abc123"
 const authenticate = async (req, res, next) => {
   try {
+    console.log("here 450")
     const token = req.header('token');
     console.log(token);
     const user = jwt.verify(token, SECRET_KEY);
-    console.log(user.userId)
+    console.log(user.userId, "this is inside auth")
     Expenseuser.findByPk(user.userId).then(user => {
       console.log(JSON.stringify(user));
       req.user = user;
