@@ -1,4 +1,6 @@
 const { error } = require('console');
+require('dotenv').config();
+console.log("       ee       nn      vv        ", process.env.SECRET_KEY)
 const Product = require('../models/expenses');
 const Order = require('../models/order')
 const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
@@ -10,12 +12,10 @@ const { Op } = require("sequelize");
 const Sib = require('sib-api-v3-sdk')
 const AWS = require('aws-sdk');
 let Client = Sib.ApiClient.instance;
-const IAM_USER_KEY = "AKIAUMYCIQWVNIKDEVM2"
-const IAM_USER_SECRET = "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"
 let s3bucket = new AWS.S3({
   //  this is just instance of server
-  accessKeyId: IAM_USER_KEY,
-  secretAccessKey: IAM_USER_SECRET,
+  accessKeyId: process.env.IAM_USER_KEY,
+  secretAccessKey: process.env.IAM_USER_SECRET,
 })
 
 function uploadToS3(data, filename) {
@@ -46,7 +46,7 @@ function uploadToS3(data, filename) {
 
 
 let apiKey = Client.authentications['api-key'];
-apiKey.apiKey = "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"
+apiKey.apiKey = process.env.razorpaykey;
 
 
 let SECRET_KEY = "abc123"
