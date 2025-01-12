@@ -2,16 +2,23 @@
 document.addEventListener("DOMContentLoaded", () => {
   let isLeaderboardLoaded = false;
   let form = document.getElementById("appointmentForm");
+  let pages = document.getElementById("expenseperpage");
+  console.log(pages)
   const ulElements = document.querySelector("ul");
   let reportsul = document.getElementById("reports")
   let currentpageoffset = 0
+  pages.addEventListener("submit", (event) => {
+
+    localStorage.setItem("pages", event.target.pages.value)
+  })
   // Fetch all existing entries
   const fetchData = () => {
+    let expenseperpage = localStorage.getItem("pages")
     axios.get("http://localhost:5000/appointmentData", {
       headers: {
         token: localStorage.getItem("user jwt")
       },
-      params: { pageoffset: currentpageoffset }
+      params: { pageoffset: currentpageoffset, expenseperpage: expenseperpage }
     })
       .then((response) => {
         console.log(response.data)
@@ -37,7 +44,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const btn2 = document.createElement('button');
           btn2.innerHTML = 'Previous Page';
           btn2.addEventListener('click', () => {
-            currentpageoffset -= 5;  // Assuming 5 items per page
+            currentpageoffset -= expenseperpage;  // Assuming 5 items per page
             fetchData();
           });
           pagination.appendChild(btn2);
@@ -53,7 +60,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const btn3 = document.createElement('button');
           btn3.innerHTML = 'Next Page';
           btn3.addEventListener('click', () => {
-            currentpageoffset += 5;  // Assuming 5 items per page
+            currentpageoffset += expenseperpage;  // Assuming 5 items per page
             fetchData();
           });
           pagination.appendChild(btn3);
@@ -61,23 +68,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Append pagination div after the list
         ulElements.after(pagination);
+        if (response.data.ispremium == true) {
+
+          premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
+          premiumbutton.innerHTML = 'you are premium user'
+        }
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
         alert('Failed to fetch bookings');
       });
+
   };
 
-  // Fetch data when DOM is loaded
-  fetchData();
 
-
-  //leaderboard and premium button here 
-  if (response.data.ispremium == true) {
-
-    premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
-    premiumbutton.innerHTML = 'you are premium user'
-
+  function leaderboardload() {
     const leaderboardButton = document.createElement("button");
     // Set the button text
     leaderboardButton.textContent = "Show Leaderboard";
@@ -111,6 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
     })
   }
 
+  fetchData();
   // Default form submission handler
   const defaultFormSubmit = (event) => {
     event.preventDefault();

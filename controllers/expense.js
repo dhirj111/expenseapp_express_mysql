@@ -156,6 +156,7 @@ exports.newexpense = async (req, res, next) => {
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
   const pageoffset = parseInt(req.query.pageoffset) || 0; // Get page offset from query params
+  const expenseperpage = parseInt(req.query.expenseperpage) || 5 //5 by default
   const limit = 5; // Items per page
 
   // First, get total count of records for pagination calculations
@@ -164,14 +165,14 @@ exports.fetchexpense = (req, res, next) => {
   })
     .then(result => {
       const totalItems = result.count;
-      const totalPages = Math.ceil(totalItems / limit);
-      const currentPage = Math.floor(pageoffset / limit) + 1;
+      const totalPages = Math.ceil(totalItems / expenseperpage);
+      const currentPage = Math.floor(pageoffset / expenseperpage) + 1;
 
       // Then fetch the actual page of data
       return Product.findAll({
         where: { expenseuserId: req.user.id },
         offset: pageoffset,
-        limit: limit,
+        limit: expenseperpage,
         order: [['id', 'DESC']] // Optional: sort by id descending
       })
         .then(expensedata => {
