@@ -3,7 +3,7 @@ const Expenseuser = require('../models/expenseuser')
 let SECRET_KEY = "abc123"
 const authenticate = async (req, res, next) => {
   try {
-    console.log("here 450")
+console.log("in auth try block")
     const token = req.header('token');
     console.log(token);
     const user = jwt.verify(token, SECRET_KEY);

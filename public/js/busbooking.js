@@ -4,59 +4,63 @@ document.addEventListener("DOMContentLoaded", () => {
   let form = document.getElementById("appointmentForm");
   const ulElements = document.querySelector("ul");
   let reportsul = document.getElementById("reports")
+  let currentpageoffset = 0
   // Fetch all existing entries
   const fetchData = () => {
-    axios.get("http://localhost:5000/appointmentData", { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get("http://localhost:5000/appointmentData", {
+      headers: {
+        token: localStorage.getItem("user jwt")
+      },
+      params: { pageoffset: currentpageoffset }
+    })
       .then((response) => {
         console.log(response.data)
         // Clear existing list
         ulElements.innerHTML = "";
+
         // Iterate through all products and create list items
         response.data.expensedata.forEach((product) => {
           let liitem = document.createElement("li");
           liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type} 
-            <button class="edt" type="button" onclick="editEntry(${product.id}, '${product.expense}', '${product.description}', '${product.type}')">edit</button> 
-            <button class="del" type="button" onclick="deleteEntry(${product.id})">delete</button>`;
+          <button class="edt" type="button" onclick="editEntry(${product.id}, '${product.expense}', '${product.description}', '${product.type}')">edit</button> 
+          <button class="del" type="button" onclick="deleteEntry(${product.id})">delete</button>`;
           liitem.classList.add("bookings");
           ulElements.appendChild(liitem);
         });
-        if (response.data.ispremium == true) {
 
-          premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
-          premiumbutton.innerHTML = 'you are premium user'
+        // Pagination logic
+        const pagination = document.createElement('div');
+        pagination.innerHTML = '';
 
-          const leaderboardButton = document.createElement("button");
-          // Set the button text
-          leaderboardButton.textContent = "Show Leaderboard";
-          // Set an id for the button (optional, for styling or further functionality)
-          leaderboardButton.id = "leaderboard";
-          // Append the button to the body
-          document.body.appendChild(leaderboardButton);
-          let leaderboardbutton = document.getElementById("leaderboard");
-          leaderboardButton.addEventListener("click", (e) => {
-            if (isLeaderboardLoaded) {
-              alert("Leaderboard is already displayed!");
-              return;
-            }
-            axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
-              .then(response => {
-                console.log(response.data)
-                let leaderboardul = document.createElement("ul");
-                leaderboardul.id = "leaderboardul";
-                document.body.appendChild(leaderboardul);
-                let leaderboardselected = document.getElementById("leaderboardul");
-                leaderboardselected.innerHTML = "";
-                for (let i = 0; i < 5; i++) {
-                  let product = response.data.expensedata[i];
-                  let liitem = document.createElement("li");
-                  liitem.innerHTML = `${product.name} - ${product.totalsum}`
-                  liitem.classList.add("bookings1");
-                  leaderboardselected.appendChild(liitem);
-                }
-              })
-            isLeaderboardLoaded = true;
-          })
+        // Previous page button
+        if (response.data.hasPreviousPage) {
+          const btn2 = document.createElement('button');
+          btn2.innerHTML = 'Previous Page';
+          btn2.addEventListener('click', () => {
+            currentpageoffset -= 5;  // Assuming 5 items per page
+            fetchData();
+          });
+          pagination.appendChild(btn2);
         }
+
+        // Current page indicator
+        const currentPageSpan = document.createElement('span');
+        currentPageSpan.innerHTML = ` Page ${response.data.currentPage} `;
+        pagination.appendChild(currentPageSpan);
+
+        // Next page button
+        if (response.data.hasNextPage) {
+          const btn3 = document.createElement('button');
+          btn3.innerHTML = 'Next Page';
+          btn3.addEventListener('click', () => {
+            currentpageoffset += 5;  // Assuming 5 items per page
+            fetchData();
+          });
+          pagination.appendChild(btn3);
+        }
+
+        // Append pagination div after the list
+        ulElements.after(pagination);
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
@@ -66,6 +70,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Fetch data when DOM is loaded
   fetchData();
+
+
+  //leaderboard and premium button here 
+  if (response.data.ispremium == true) {
+
+    premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
+    premiumbutton.innerHTML = 'you are premium user'
+
+    const leaderboardButton = document.createElement("button");
+    // Set the button text
+    leaderboardButton.textContent = "Show Leaderboard";
+    // Set an id for the button (optional, for styling or further functionality)
+    leaderboardButton.id = "leaderboard";
+    // Append the button to the body
+    document.body.appendChild(leaderboardButton);
+    let leaderboardbutton = document.getElementById("leaderboard");
+    leaderboardButton.addEventListener("click", (e) => {
+      if (isLeaderboardLoaded) {
+        alert("Leaderboard is already displayed!");
+        return;
+      }
+      axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
+        .then(response => {
+          console.log(response.data)
+          let leaderboardul = document.createElement("ul");
+          leaderboardul.id = "leaderboardul";
+          document.body.appendChild(leaderboardul);
+          let leaderboardselected = document.getElementById("leaderboardul");
+          leaderboardselected.innerHTML = "";
+          for (let i = 0; i < 5; i++) {
+            let product = response.data.expensedata[i];
+            let liitem = document.createElement("li");
+            liitem.innerHTML = `${product.name} - ${product.totalsum}`
+            liitem.classList.add("bookings1");
+            leaderboardselected.appendChild(liitem);
+          }
+        })
+      isLeaderboardLoaded = true;
+    })
+  }
 
   // Default form submission handler
   const defaultFormSubmit = (event) => {

@@ -3,6 +3,7 @@ require('dotenv').config();
 console.log("       ee       nn      vv        ", process.env.SECRET_KEY)
 const Product = require('../models/expenses');
 const Order = require('../models/order')
+const ReportLink = require('../models/reportlink')
 const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
 //expense is product here
 const Sequelize = require('sequelize');
@@ -154,12 +155,38 @@ exports.newexpense = async (req, res, next) => {
 };
 //route to fetch all data
 exports.fetchexpense = (req, res, next) => {
-  Product.findAll({ where: { expenseuserId: req.user.id } })
-    .then(expensedata => {
-      res.json({ expensedata: expensedata, ispremium: req.user.isPremiumUser });
+  const pageoffset = parseInt(req.query.pageoffset) || 0; // Get page offset from query params
+  const limit = 5; // Items per page
+
+  // First, get total count of records for pagination calculations
+  Product.findAndCountAll({
+    where: { expenseuserId: req.user.id }
+  })
+    .then(result => {
+      const totalItems = result.count;
+      const totalPages = Math.ceil(totalItems / limit);
+      const currentPage = Math.floor(pageoffset / limit) + 1;
+
+      // Then fetch the actual page of data
+      return Product.findAll({
+        where: { expenseuserId: req.user.id },
+        offset: pageoffset,
+        limit: limit,
+        order: [['id', 'DESC']] // Optional: sort by id descending
+      })
+        .then(expensedata => {
+          res.json({
+            expensedata: expensedata,
+            ispremium: req.user.isPremiumUser,
+            currentPage: currentPage,
+            hasNextPage: currentPage < totalPages,
+            hasPreviousPage: currentPage > 1,
+            totalPages: totalPages
+          });
+        });
     })
     .catch(err => {
-      console.log(err)
+      console.log(err);
       console.error('Error fetching products:', err);
       res.status(500).json({ error: "Failed to fetch products" });
     });
@@ -553,20 +580,22 @@ exports.datedexpense = (req, res) => {
 }
 
 exports.downloadexpenses = async (req, res) => {
-
+  console.log(req.user.id, " hell o   hello ")
   try {
     const expenses = await req.user.getExpensedata(); // Magic method
     console.log("            attacked          ", expenses);
     const stringified = JSON.stringify(expenses);
     const filename = `expense${new Date()}.txt`
     console.log(stringified)
-    const fileurl = await uploadToS3(stringified, filename)
+    const fileurl = await uploadToS3(stringified, filename);
+    await ReportLink.create({
+      link: fileurl,
+      expenseuserId: req.user.id  // assuming user.id is your user identifier
+    });
     res.status(200).json({ fileurl, success: true })
-
   }
   catch (err) {
     console.log(err)
     res.status(501).json({ error: err })
-
   }
 }
