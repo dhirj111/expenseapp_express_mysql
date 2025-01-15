@@ -316,7 +316,7 @@ exports.login = async (req, res, next) => {
             usertoken: generateAccessToken(existingUser.id, existingUser.isPremiumUser),
             code: "userverified",
             message: "user logged in succesfully",
-            urltoredirect: 'http://localhost:5000/'
+            urltoredirect: 'https://localhost:5000/'
           });
         }
         else {
@@ -459,7 +459,7 @@ exports.postresetpassword = async (req, res) => {
   await Expenseuser.findOne({ where: { email: req.body.email } })
     .then(res => { uid = res.id })
   let uniqueid = uuidv4();
-  let uniquelink = "http://localhost:4000/resetpassword/" + uniqueid;
+  let uniquelink = "https://localhost:4000/resetpassword/" + uniqueid;
   console.log(uniquelink)
   ForgotPasswordRequests.create({
     uuid: uniqueid,

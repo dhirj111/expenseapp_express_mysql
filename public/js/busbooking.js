@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fetch all existing entries
   const fetchData = () => {
     let expenseperpage = localStorage.getItem("pages")
-    axios.get("http://localhost:5000/appointmentData", {
+    axios.get("https://localhost:5000/appointmentData", {
       headers: {
         token: localStorage.getItem("user jwt")
       },
@@ -96,7 +96,7 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Leaderboard is already displayed!");
         return;
       }
-      axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
+      axios.get("https://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
         .then(response => {
           console.log(response.data)
           let leaderboardul = document.createElement("ul");
@@ -132,7 +132,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
     console.log(userDetails)
     axios
-      .post("http://localhost:5000/appointmentData", userDetails, { headers: { token: localStorage.getItem("user jwt") } })
+      .post("https://localhost:5000/appointmentData", userDetails, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         alert('Product created successfully!');
         fetchData(); // Refresh the list
@@ -151,7 +151,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Delete entry function
   window.deleteEntry = (id) => {
     axios
-      .delete(`http://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
+      .delete(`https://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         console.log('Data Deleted Successfully');
         fetchData(); // Refresh the list
@@ -187,7 +187,7 @@ document.addEventListener("DOMContentLoaded", () => {
       };
       //below we are passing two things one is id ,and another is objects as updateddetails
       axios
-        .put(`http://localhost:5000/appointmentData/${id}`, updatedDetails)
+        .put(`https://localhost:5000/appointmentData/${id}`, updatedDetails)
         .then((response) => {
           alert('Product updated successfully!');
           fetchData(); // Refresh the list
@@ -211,7 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let downloadbutton = document.getElementById("downloadexpense")
   downloadbutton.addEventListener("click", (event) => {
     event.preventDefault();
-    axios.get('http://localhost:5000/downloadexpenses', { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get('https://localhost:5000/downloadexpenses', { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         // let leaderboardul = document.createElement("ul");
         // leaderboardul.id = "leaderboardul";
@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let premiumbutton = document.getElementById("premium");
   premiumbutton.addEventListener("click", async (event) => {
     event.preventDefault();
-    axios.get('http://localhost:5000/purchase/premiummembership', { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get('https://localhost:5000/purchase/premiummembership', { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         console.log("res112233", response.data)
         let options = {
@@ -241,7 +241,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "callback_url": "https://eneqd3r9zrjok.x.pipedream.net/",
           "handler": async function (response) {
             console.log("razorwood", response);
-            await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
+            await axios.post('https://localhost:5000/purchase/updatetransectionstatus', {
 
               //this are not passed correctly  to next middleware 
               order_id: options.order_id,
@@ -259,7 +259,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "modal": {
             "ondismiss": async function () {
               try {
-                await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
+                await axios.post('https://localhost:5000/purchase/updatetransectionstatus', {
                   order_id: options.order_id,
                   payment_status: 'FAILED'
                 }, {

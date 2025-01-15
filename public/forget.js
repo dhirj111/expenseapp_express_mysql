@@ -6,7 +6,7 @@ const handleformsubmit = (event) => {
   };
   // console.log(userDetails)
   axios
-    .post("http://localhost:5000/password/forgetpassword", userDetails)
+    .post("https://localhost:5000/password/forgetpassword", userDetails)
     .then((response) => {
       console.log("this is response of foreget.js file response", response)
       document.getElementById('note').textContent += response.data.message;

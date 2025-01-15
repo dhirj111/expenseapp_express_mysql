@@ -2,6 +2,7 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const fs = require('fs')
+const https = require('https')
 const { v4: uuidv4 } = require('uuid');
 uuidv4();
 const app = express();
@@ -40,11 +41,15 @@ Expenseuser.hasMany(Order);
 Order.belongsTo(Expenseuser)
 //defiend new relations with user and order after improting it
 const adminRoutes = require('./routes/expense');
+const { Certificate } = require('crypto');
 
 // Static file serving
 app.use(express.static(path.join(__dirname, 'public')));
 // Routes
 app.use(adminRoutes);
+
+const privatekey = fs.readFileSync('server.key')
+const certificate = fs.readFileSync('server.cert')
 
 app.use(helmet())
 app.use(morgan('combined'));
@@ -54,8 +59,8 @@ const accessLogStream = fs.createWriteStream(path.join(__dirname, 'access.log'),
 sequelize
   .sync()
   .then(() => {
-    app.listen(5000, () => {
-      console.log('Server is running on http://localhost:5000');
+    https.createServer({ key: privatekey, cert: certificate }, app).listen(5000, () => {
+      console.log('Server is running on https://localhost:5000');
     });
   })
   .catch(err => {

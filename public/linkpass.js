@@ -16,7 +16,7 @@ const handleformsubmit1 = (event) => {
     password: event.target.password.value
   };
   axios
-    .post("http://localhost:5000/password/linkandurl", userDetails)
+    .post("https://localhost:5000/password/linkandurl", userDetails)
     .then((response) => {
       console.log("this is response of linkpass.js file response", response)
       document.getElementById('note').textContent += response.data.message;

@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // console.log(userDetails)
   axios
-    .get("http://localhost:5000/datedexpense")
+    .get("https://localhost:5000/datedexpense")
     .then((response) => {
       let expensesum = 0;
       console.log(response.data.expensedata)
