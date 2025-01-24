@@ -9,7 +9,7 @@ const handleformsubmit = (event) => {
     .post("https://localhost:5000/password/forgetpassword", userDetails)
     .then((response) => {
       console.log("this is response of foreget.js file response", response)
-      document.getElementById('note').textContent += response.data.message;
+      document.getElementById('note').innerHTML = `<a href=${response.data.link}>this is reset link [DEMO]</a>`
       if (response.data.urltoredirect) {
         localStorage.setItem("user jwt", response.data.usertoken)
         window.location.href = response.data.urltoredirect;

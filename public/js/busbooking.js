@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     localStorage.setItem("pages", event.target.pages.value)
   })
+  let logoutbutton = document.getElementById('logout')
+  logoutbutton.addEventListener("click", (Event) => {
+    console.log("log clicked")
+    localStorage.removeItem("user jwt")
+  })
   // Fetch all existing entries
   const fetchData = () => {
     let expenseperpage = localStorage.getItem("pages")
@@ -21,11 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
       params: { pageoffset: currentpageoffset, expenseperpage: expenseperpage }
     })
       .then((response) => {
-        console.log(response.data)
         // Clear existing list
         ulElements.innerHTML = "";
 
-        // Iterate through all products and create list items
+        // Iterate through products and create list items
         response.data.expensedata.forEach((product) => {
           let liitem = document.createElement("li");
           liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type} 
@@ -35,16 +39,22 @@ document.addEventListener("DOMContentLoaded", () => {
           ulElements.appendChild(liitem);
         });
 
-        // Pagination logic
+        // Remove any existing pagination
+        const existingPagination = document.querySelector('.pagination');
+        if (existingPagination) {
+          existingPagination.remove();
+        }
+
+        // Create new pagination div
         const pagination = document.createElement('div');
-        pagination.innerHTML = '';
+        pagination.classList.add('pagination');
 
         // Previous page button
         if (response.data.hasPreviousPage) {
           const btn2 = document.createElement('button');
           btn2.innerHTML = 'Previous Page';
           btn2.addEventListener('click', () => {
-            currentpageoffset -= expenseperpage;  // Assuming 5 items per page
+            currentpageoffset -= expenseperpage;
             fetchData();
           });
           pagination.appendChild(btn2);
@@ -60,7 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const btn3 = document.createElement('button');
           btn3.innerHTML = 'Next Page';
           btn3.addEventListener('click', () => {
-            currentpageoffset += expenseperpage;  // Assuming 5 items per page
+            currentpageoffset += expenseperpage;
             fetchData();
           });
           pagination.appendChild(btn3);
@@ -68,8 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // Append pagination div after the list
         ulElements.after(pagination);
-        if (response.data.ispremium == true) {
 
+        if (response.data.ispremium == true) {
           premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
           premiumbutton.innerHTML = 'you are premium user'
         }
@@ -78,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error('Error fetching data:', error);
         alert('Failed to fetch bookings');
       });
-
   };
 
 

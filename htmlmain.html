@@ -6,6 +6,57 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>expense tracker</title>
 </head>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    max-width: 600px;
+    margin: 2rem auto;
+    padding: 1rem;
+    background-color: #f4f4f4;
+  }
+
+  form {
+    background-color: white;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  input,
+  select {
+    width: 100%;
+    padding: 0.5rem;
+    margin: 0.5rem 0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 0.75rem;
+    margin: 1rem 0;
+    background-color: #20B2AA;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  ul {
+    list-style-type: none;
+    padding: 0;
+  }
+
+  #expense li {
+    background-color: white;
+    margin: 0.5rem 0;
+    padding: 1rem;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+</style>
 
 <body>
   <form id="appointmentForm" onsubmit="handleFormSubmit(event)">
@@ -26,7 +77,7 @@
     </br>
     <button type="submit">Book</button>
   </form>
-  <form id="expenseperpage" >
+  <form id="expenseperpage">
 
     <input type="number" name="expenseperpage" id="pages">
     <button type="submit">expense per page</button>
@@ -36,6 +87,8 @@
   <button id="premium"> BUY PREMIUM</button>
 
   <button id="downloadexpense"> downloadexpense </button>
+
+  <button id="logout"> LOGOUT </button>
   <ul id="reports"></ul>
 </body>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.5.1/axios.min.js"></script>

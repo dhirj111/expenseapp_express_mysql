@@ -7,8 +7,9 @@ const ReportLink = require('../models/reportlink')
 const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
 //expense is product here
 const Sequelize = require('sequelize');
+const validator = require('validator');
 const sequelize = require('../util/database');
-const { v4: uuidv4 } = require('uuid');
+const { v4: uuidv4, validate } = require('uuid');
 const { Op } = require("sequelize");
 const Sib = require('sib-api-v3-sdk')
 const AWS = require('aws-sdk');
@@ -18,7 +19,6 @@ let s3bucket = new AWS.S3({
   accessKeyId: process.env.IAM_USER_KEY,
   secretAccessKey: process.env.IAM_USER_SECRET,
 })
-
 function uploadToS3(data, filename) {
   const BUCKET_NAME = "testbucket102030po"
 
@@ -67,6 +67,7 @@ const bcrypt = require('bcrypt');
 const { json, where } = require('sequelize');
 const { JsonWebTokenError } = require('jsonwebtoken');
 const Razorpay = require('razorpay');
+const { link } = require('fs');
 //to serve main html file
 exports.baseroot = (req, res, next) => {
   console.log("Serving htmlmain.html");
@@ -251,6 +252,21 @@ exports.updateexpense = async (req, res, next) => {
     });
 
 }
+
+
+
+function validateInput(email, password) {
+  console.log("inside validtor")
+  if (!validator.isEmail(email)) {
+    return "Invalid email format";
+  }
+
+  if (!validator.isLength(password, { min: 6, max: 12 })) {
+    return "Password must be 6 digits";
+  }
+  return true; // Valid input
+}
+
 exports.signup = async (req, res, next) => {
   const t = await sequelize.transaction();
   const saltRounds = 10;
@@ -258,7 +274,16 @@ exports.signup = async (req, res, next) => {
   //even for same password each time to increase safety
   try {
     const { name, email, password } = req.body;
+    let validated = validateInput(email, password)
+    console.log(validated, "is validated status till now")
+    if (validated == "Invalid email format" || validated == "Password must be 6 digits") {
+      console.log("not validated ")
+      return res.status(409).json({
+        error: validated,
+        message: validated
+      });
 
+    }
     // Check if user with email already exists
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
@@ -304,7 +329,6 @@ exports.login = async (req, res, next) => {
   console.log(req.body)
   try {
     const { email, password } = req.body;
-
     const existingUser = await Expenseuser.findOne({
       where: { email: email }
     });
@@ -452,47 +476,40 @@ exports.rankwiseexpense = async (req, res) => {
 }
 
 exports.postresetpassword = async (req, res) => {
-  // const linkparameter = req.params.id;
-  // console.log("hiited reset  password first")
-  // let uid;
-  // if (linkparameter == 0) {
+
   await Expenseuser.findOne({ where: { email: req.body.email } })
     .then(res => { uid = res.id })
   let uniqueid = uuidv4();
-  let uniquelink = "https://localhost:4000/resetpassword/" + uniqueid;
+  let uniquelink = "https://localhost:5000/password/forgetpassword/" + uniqueid;
   console.log(uniquelink)
   ForgotPasswordRequests.create({
     uuid: uniqueid,
     isactive: true,
     expenseuserId: uid
   })
-  // else {
-  //   await ForgotPasswordRequests.findByPk(linkparameter).then(res=>{
-  //     res.redirect( )
-  //   })
-  //   console.log(u12,"      iiiiiiiii    iii              iiiiiiiii         ")
-  //   //if link is not zero then provide reset password form
 
   // }
   try {
-    console.log("Starting password reset process");
 
-    let apiInstance = new Sib.TransactionalEmailsApi();
-    let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
+    // //pasword reset send via sendinblue/brevo
+    // console.log("Starting password reset process");
+    // let apiInstance = new Sib.TransactionalEmailsApi();
+    // let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
+    // sendSmtpEmail.subject = "My {{params.subject}}";
+    // sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href=uniquelink>reset link</a></body></html>";
+    // sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
+    // sendSmtpEmail.to = [
+    //   { "email": req.body.email, "name": "sample-name" }
+    // ];
+    // sendSmtpEmail.replyTo = { "email": "example@brevo.com", "name": "sample-name" };
+    // sendSmtpEmail.headers = { "Some-Custom-Name": "unique-id-1234" };
+    // sendSmtpEmail.params = { "parameter": "My param value", "subject": "common subject" };
+    // const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+    // console.log('Email sent successfully:', JSON.stringify(result));
 
-    sendSmtpEmail.subject = "My {{params.subject}}";
-    sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href=uniquelink>reset link</a></body></html>";
-    sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
-    sendSmtpEmail.to = [
-      { "email": req.body.email, "name": "sample-name" }
-    ];
-    sendSmtpEmail.replyTo = { "email": "example@brevo.com", "name": "sample-name" };
-    sendSmtpEmail.headers = { "Some-Custom-Name": "unique-id-1234" };
-    sendSmtpEmail.params = { "parameter": "My param value", "subject": "common subject" };
 
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    console.log('Email sent successfully:', JSON.stringify(result));
-    res.status(200).json({ message: 'Password reset email sent' });
+
+    res.status(200).json({ message: 'Password reset email sent', link: uniquelink });
 
   } catch (error) {
     console.error('Error sending email:', error);
@@ -504,7 +521,7 @@ exports.postresetpassword = async (req, res) => {
 };
 
 exports.getresetpasword = (req, res) => {
-  console.log("Serving singup.html");
+  console.log(" linkpass.html");
   res.sendFile(path.join(__dirname, '..', 'public', 'linkpass.html'));
 }
 exports.linkandurl = async (req, res) => {
@@ -523,6 +540,12 @@ exports.linkandurl = async (req, res) => {
       console.log(" 771")
       return res.status(500).json({
         custommessage: 'link is not active ,please generate new link',
+      });
+    }
+
+    if(req.body.password.length<6){
+      return res.status(500).json({
+        custommessage: 'password length should be greater then 6',
       });
     }
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
