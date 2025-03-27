@@ -60,7 +60,7 @@ sequelize
   .sync()
   .then(() => {
     https.createServer({ key: privatekey, cert: certificate }, app).listen(5000, () => {
-      console.log('Server is running on https://localhost:5000');
+      console.log('Server is running on http://localhost:5000');
     });
   })
   .catch(err => {

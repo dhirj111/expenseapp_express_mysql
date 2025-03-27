@@ -4,7 +4,6 @@ const handleformsubmit = (event) => {
   const userDetails = {
     email: event.target.email.value,
   };
-  // console.log(userDetails)
   axios
     .post("https://localhost:5000/password/forgetpassword", userDetails)
     .then((response) => {

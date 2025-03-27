@@ -9,7 +9,6 @@ const ForgotPasswordRequests = sequelize.define('forgetpasswordrequests', {
     primaryKey: true
   },
   isactive: Sequelize.BOOLEAN
-
 }
 );
 

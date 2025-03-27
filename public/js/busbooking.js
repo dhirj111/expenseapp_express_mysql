@@ -86,7 +86,7 @@ document.addEventListener("DOMContentLoaded", () => {
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
-        alert('Failed to fetch bookings');
+        alert('YOU ARE NOT LOGGED IN , PLEASE LOGIN TO USE');
       });
   };
 

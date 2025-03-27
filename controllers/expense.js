@@ -220,6 +220,7 @@ exports.deleteexpense = (req, res, next) => {
       res.status(500).json({ error: "Failed to delete product" });
     });
 }
+
 //route to update expense
 exports.updateexpense = async (req, res, next) => {
   const t = await sequelize.transaction();
@@ -246,7 +247,6 @@ exports.updateexpense = async (req, res, next) => {
       res.json({ message: "Product updated successfully", product: updatedProduct });
     })
     .catch(err => {
-
       console.error('Error updating product:', err);
       res.status(500).json({ error: "Failed to update product" });
     });
@@ -543,7 +543,7 @@ exports.linkandurl = async (req, res) => {
       });
     }
 
-    if(req.body.password.length<6){
+    if (req.body.password.length < 6) {
       return res.status(500).json({
         custommessage: 'password length should be greater then 6',
       });
