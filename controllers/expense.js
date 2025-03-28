@@ -4,6 +4,7 @@ console.log("       ee       nn      vv        ", process.env.SECRET_KEY)
 const Expense = require('../models/expenses');
 const Order = require('../models/order')
 const ReportLink = require('../models/reportlink')
+const mongoose = require('mongoose')
 const ForgotPasswordRequest = require('../models/ForgotPasswordRequests')
 //expense is product here
 const Sequelize = require('sequelize');
@@ -405,95 +406,80 @@ exports.login = async (req, res, next) => {
 }
 
 exports.buypremium = async (req, res) => {
-  const t = await sequelize.transaction();
+  // Start a mongoose session for a transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
   console.log(req.user.id);
+
   const rzp = new Razorpay({
     key_id: "rzp_test_BpGJqLLuHLOWWQ",
     key_secret: "xSSP7tmZq1Hle782rmCDBRPP",
   });
 
   try {
-    rzp.orders.create({ amount: 3355050, currency: 'INR' }, async (err, order) => {
-      if (err) {
-        console.error("Error creating order:", err);
-        return res.status(500).json({ error: "Failed to create order" });
-      }
+    // Create Razorpay order using a promise wrapper
+    const order = await new Promise((resolve, reject) => {
+      rzp.orders.create({ amount: 3355050, currency: 'INR' }, (err, order) => {
+        if (err) {
+          console.error("Error creating order:", err);
+          return reject(err);
+        }
+        resolve(order);
+      });
+    });
 
-      console.log("Order created successfully:", order);
+    console.log("Order created successfully:", order);
 
-      try {
-        await req.user.createOrder({ orderId: order.id, status: 'pending' }, { transaction: t });
-        console.log("Order stored in database successfully");
-        await t.commit();
+    // Create a new Order document (set paymentId as an empty string initially)
+    const newOrder = new Order({
+      OrderId: order.id,
+      status: 'pending',
+      paymentId: "" // No paymentId yet
+    });
 
-        return res.status(201).json({
-          order,
-          key_id: rzp.key_id,
-        });
-      } catch (dbError) {
+    await newOrder.save({ session });
+    console.log("Order stored in database successfully");
 
-        console.error("Error saving order to database:", dbError);
-        return res.status(500).json({ error: "Failed to save order in database" });
-      }
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    return res.status(201).json({
+      order,
+      key_id: rzp.key_id,
     });
   } catch (error) {
-    await t.rollback()
+    // Roll back transaction on error
+    await session.abortTransaction();
+    session.endSession();
     console.error("Error in buypremium:", error);
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
 exports.updatetransectionstatus = async (req, res) => {
-  const t = await sequelize.transaction();
-  console.log("payment status and body is", req.body)
-  try {
-    const { payment_id, order_id } = req.body;
+  const updateOrderPromise = Order.updateOne(
+    { OrderId: order_id },
+    { $set: { paymentId: payment_id, status: 'SUCCESSFUL' } },
+    { session }
+  );
 
-    // Create an array of independent promises to be executed
-    const updatePromises = [
-      // Update order with payment details
-      Order.update(
-        {
-          paymentId: payment_id,
-          status: 'SUCCESSFUL'
-        },
-        {
-          where: { orderId: order_id }
-        },
-        { transaction: t }
-      ),
+  const updateUserPromise = ExpenseUser.updateOne(
+    { _id: req.user.id },
+    { $set: { isPremiumUser: true } },
+    { session }
+  );
 
-      // Update user premium status
-      Expenseuser.update(
-        { isPremiumUser: true },
-        {
-          where: { id: req.user.id }
-        },
-        { transaction: t }
+  // Execute both updates concurrently
+  await Promise.all([updateOrderPromise, updateUserPromise]);
 
-      )
-    ];
+  await session.commitTransaction();
+  session.endSession();
 
-    // Execute all promises concurrently
-    await Promise.all(updatePromises);
-    await t.commit();
-
-    // Send success response
-    return res.status(202).json({
-      usertoken: generateAccessToken(req.user.id, true),
-      success: true,
-      message: "Transaction Successful"
-    });
-
-  } catch (err) {
-    await t.rollback()
-    console.error('Error in updateTransactionStatus:', err);
-    return res.status(500).json({
-      success: false,
-      message: "Error processing transaction",
-      error: err.message
-    });
-  }
+  return res.status(202).json({
+    usertoken: generateAccessToken(req.user.id, true),
+    success: true,
+    message: "Transaction Successful"
+  });
 };
 
 exports.rankwiseexpense = async (req, res) => {
@@ -671,7 +657,7 @@ exports.linkandurl = async (req, res) => {
   console.log("linkandurl is hitted")
   try {
     const currentuser = await ForgotPasswordRequest.findOne({ uuid: req.body.sid });
-console.log(currentuser)
+    console.log(currentuser)
     if (!currentuser) {
       console.log("770");
       return res.status(500).json({ custommessage: 'Invalid link' });

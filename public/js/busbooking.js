@@ -160,7 +160,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Delete entry function
   window.deleteEntry = (id) => {
     axios
-      .delete(`https://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
+      .delete(`http://localhost:5000/appointmentData/${id}`, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         console.log('Data Deleted Successfully');
         fetchData(); // Refresh the list
@@ -239,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let premiumbutton = document.getElementById("premium");
   premiumbutton.addEventListener("click", async (event) => {
     event.preventDefault();
-    axios.get('https://localhost:5000/purchase/premiummembership', { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get('http://localhost:5000/purchase/premiummembership', { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         console.log("res112233", response.data)
         let options = {
