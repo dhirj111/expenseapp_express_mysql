@@ -1,22 +1,22 @@
 
 const handleformsubmit1 = (event) => {
-  let msg = " hacked by mp hackers "
   document.getElementById('note').textContent = "message for user==";
   event.preventDefault();
 
   const path = window.location.pathname;
-
+console.log("path is =" ,path)
   // Split the path into parts
   const pathParts = path.split('/');
 
   // Get the last part, which is the 'sid'
   const sid = pathParts[pathParts.length - 1];
+  console.log("sid is =" ,sid)
   const userDetails = {
     sid: sid,
     password: event.target.password.value
   };
   axios
-    .post("https://localhost:5000/password/linkandurl", userDetails)
+    .post("http://localhost:5000/password/linkandurl", userDetails)
     .then((response) => {
       console.log("this is response of linkpass.js file response", response)
       document.getElementById('note').textContent += response.data.message;

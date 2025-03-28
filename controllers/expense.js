@@ -1,10 +1,10 @@
 const { error } = require('console');
 require('dotenv').config();
 console.log("       ee       nn      vv        ", process.env.SECRET_KEY)
-const Product = require('../models/expenses');
+const Expense = require('../models/expenses');
 const Order = require('../models/order')
 const ReportLink = require('../models/reportlink')
-const ForgotPasswordRequests = require('../models/ForgotPasswordRequests')
+const ForgotPasswordRequest = require('../models/ForgotPasswordRequests')
 //expense is product here
 const Sequelize = require('sequelize');
 const validator = require('validator');
@@ -98,52 +98,43 @@ exports.adduser = (req, res, next) => {
 
 // Route for handling appointment data of newly added expense
 exports.newexpense = async (req, res, next) => {
-  const t = await sequelize.transaction();
+  console.log(req.body)
 
   try {
-    console.log("Received data at /appointmentData");
-    console.log("user attached with req of middleware", req.user.id, " ", req.body.user);
 
-    const { expense, description, type } = req.body;
+    const { amount, description, type } = req.body;
 
-    // Get current user with totalsum
-    const user = await Expenseuser.findByPk(req.user.id, { transaction: t });
-
-    if (!user) {
-      await t.rollback();
-      return res.status(404).json({
-        error: 'User not found'
+    let expense = new Expense({
+      amount: amount, description: description, type: type, name: req.user.name, userId: req.user._id
+    })
+    console.log(expense)
+    expense.save().then(result => {
+      return res.status(201).json({
+        message: "Expense recorded successfully",
+        expense: result
       });
-    }
+    })
 
-    // Create new expense within transaction
-    const newExpense = await Product.create({
-      expense: Number(expense),
-      description: description.trim(),
-      type: type.toLowerCase(),
-      expenseuserId: req.user.id,
-      name: req.user.name
-    }, { transaction: t });
+
+
+
+
+
 
     // Calculate new total based on expense type
-    const newTotal = type.toLowerCase() === 'income' ? (user.totalsum || 0) + Number(expense) : (user.totalsum || 0) - Number(expense);
+
 
     // Update user's totalsum within transaction
-    await user.update({ totalsum: newTotal }, { transaction: t });
+
 
     // Commit transaction
-    await t.commit();
+
 
     // Send success response
-    return res.status(201).json({
-      message: "Expense recorded successfully",
-      expense: newExpense,
-      currentBalance: newTotal
-    });
+
 
   } catch (err) {
     // Rollback transaction on error
-    await t.rollback();
 
     console.error('Error creating expense:', err);
 
@@ -154,45 +145,82 @@ exports.newexpense = async (req, res, next) => {
     });
   }
 };
-//route to fetch all data
-exports.fetchexpense = (req, res, next) => {
-  const pageoffset = parseInt(req.query.pageoffset) || 0; // Get page offset from query params
-  const expenseperpage = parseInt(req.query.expenseperpage) || 5 //5 by default
-  const limit = 5; // Items per page
 
-  // First, get total count of records for pagination calculations
-  Product.findAndCountAll({
-    where: { expenseuserId: req.user.id }
-  })
-    .then(result => {
-      const totalItems = result.count;
-      const totalPages = Math.ceil(totalItems / expenseperpage);
-      const currentPage = Math.floor(pageoffset / expenseperpage) + 1;
 
-      // Then fetch the actual page of data
-      return Product.findAll({
-        where: { expenseuserId: req.user.id },
-        offset: pageoffset,
-        limit: expenseperpage,
-        order: [['id', 'DESC']] // Optional: sort by id descending
-      })
-        .then(expensedata => {
-          res.json({
-            expensedata: expensedata,
-            ispremium: req.user.isPremiumUser,
-            currentPage: currentPage,
-            hasNextPage: currentPage < totalPages,
-            hasPreviousPage: currentPage > 1,
-            totalPages: totalPages
-          });
-        });
-    })
-    .catch(err => {
-      console.log(err);
-      console.error('Error fetching products:', err);
-      res.status(500).json({ error: "Failed to fetch products" });
+
+
+exports.fetchexpense = async (req, res, next) => {
+  try {
+    const pageoffset = parseInt(req.query.pageoffset) || 0;
+    const expenseperpage = parseInt(req.query.expenseperpage) || 5;
+
+    // First, count the total documents for the given userId
+    const totalItems = await Expense.countDocuments({ userId: req.user.id });
+    const totalPages = Math.ceil(totalItems / expenseperpage);
+    const currentPage = Math.floor(pageoffset / expenseperpage) + 1;
+
+    // Then, fetch the expenses for the current page
+    const expenses = await Expense.find({ userId: req.user.id })
+      .sort({ _id: -1 }) // Sort by _id descending; equivalent to sorting by id descending
+      .skip(pageoffset)
+      .limit(expenseperpage)
+      .exec();
+
+    res.json({
+      expensedata: expenses,
+      ispremium: req.user.isPremiumUser,
+      currentPage: currentPage,
+      hasNextPage: currentPage < totalPages,
+      hasPreviousPage: currentPage > 1,
+      totalPages: totalPages
     });
-}
+  } catch (err) {
+    console.error('Error fetching expenses:', err);
+    res.status(500).json({ error: "Failed to fetch expenses" });
+  }
+};
+
+
+
+//route to fetch all data
+// exports.fetchexpense = (req, res, next) => {
+//   const pageoffset = parseInt(req.query.pageoffset) || 0; // Get page offset from query params
+//   const expenseperpage = parseInt(req.query.expenseperpage) || 5 //5 by default
+//   const limit = 5; // Items per page
+
+//   // First, get total count of records for pagination calculations
+//   Product.findAndCountAll({
+//     where: { expenseuserId: req.user.id }
+//   })
+//     .then(result => {
+//       const totalItems = result.count;
+//       const totalPages = Math.ceil(totalItems / expenseperpage);
+//       const currentPage = Math.floor(pageoffset / expenseperpage) + 1;
+
+//       // Then fetch the actual page of data
+//       return Product.findAll({
+//         where: { expenseuserId: req.user.id },
+//         offset: pageoffset,
+//         limit: expenseperpage,
+//         order: [['id', 'DESC']] // Optional: sort by id descending
+//       })
+//         .then(expensedata => {
+//           res.json({
+//             expensedata: expensedata,
+//             ispremium: req.user.isPremiumUser,
+//             currentPage: currentPage,
+//             hasNextPage: currentPage < totalPages,
+//             hasPreviousPage: currentPage > 1,
+//             totalPages: totalPages
+//           });
+//         });
+//     })
+//     .catch(err => {
+//       console.log(err);
+//       console.error('Error fetching products:', err);
+//       res.status(500).json({ error: "Failed to fetch products" });
+//     });
+// }
 
 //route to delete expense
 exports.deleteexpense = (req, res, next) => {
@@ -268,7 +296,7 @@ function validateInput(email, password) {
 }
 
 exports.signup = async (req, res, next) => {
-  const t = await sequelize.transaction();
+  console.log("signup hitted")
   const saltRounds = 10;
   //salt is an string/whatver added to  password which increases randomness of password
   //even for same password each time to increase safety
@@ -282,40 +310,43 @@ exports.signup = async (req, res, next) => {
         error: validated,
         message: validated
       });
-
     }
     // Check if user with email already exists
-    const existingUser = await Expenseuser.findOne({
-      where: { email: email }
-    }, { transaction: t });
-
-    if (existingUser) {
-      console.log('Account already exists for email:', email);
-      await t.rollback();
-      return res.status(409).json({
-        error: "Account already exists",
-        message: "An account with this email already exists"
-      });
-    }
+    // const existingUser = await Expenseuser.findOne({
+    //   where: { email: email }
+    // });
+    // if (existingUser) {
+    //   console.log('Account already exists for email:', email);
+    //   return res.status(409).json({
+    //     error: "Account already exists",
+    //     message: "An account with this email already exists"
+    //   });
+    // }
 
     // If email doesn't exist, create new user
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    await Expenseuser.create(
-      {
-        name,
-        email,
-        password: hashedPassword,
-        totalsum: 0
-      },
-      { transaction: t }
-    );
 
-    await t.commit();
+
+    let expenseuser = new Expenseuser({
+      name: name, email: email, password: hashedPassword
+    })
+    console.log(expenseuser)
+    await expenseuser.save()
+
+
+
+    // await Expenseuser.create(
+    //   {
+    //     name,
+    //     email,
+    //     password: hashedPassword
+    //   }
+    // );
+
     res.status(201).json({
       message: "User created successfully"
     });
   } catch (err) {
-    await t.rollback();
     console.error('Error in signup:', err);
     res.status(500).json({
       error: "Failed to process signup",
@@ -326,21 +357,26 @@ exports.signup = async (req, res, next) => {
 
 
 exports.login = async (req, res, next) => {
-  console.log(req.body)
+  console.log("hitted login")
   try {
     const { email, password } = req.body;
-    const existingUser = await Expenseuser.findOne({
-      where: { email: email }
-    });
+
+
+    const existingUser = await Expenseuser.find({ email: email })
+    console.log("stored as place102", existingUser[0].password)
+
+    //   const existingUser = await Expenseuser.findOne({
+    //     where: { email: email }
+    //   });
     if (existingUser) {
-      bcrypt.compare(password, existingUser.password).then(function (result) {
+      bcrypt.compare(password, existingUser[0].password).then(function (result) {
 
         if (result) {
           return res.status(201).json({
-            usertoken: generateAccessToken(existingUser.id, existingUser.isPremiumUser),
+            usertoken: generateAccessToken(existingUser[0]._id, existingUser[0].isPremiumUser),
             code: "userverified",
             message: "user logged in succesfully",
-            urltoredirect: 'https://localhost:5000/'
+            urltoredirect: 'http://localhost:5000/'
           });
         }
         else {
@@ -475,44 +511,101 @@ exports.rankwiseexpense = async (req, res) => {
     });
 }
 
+// exports.postresetpassword = async (req, res) => {
+
+//   await Expenseuser.findOne({ where: { email: req.body.email } })
+//     .then(res => { uid = res.id })
+//   let uniqueid = uuidv4();
+//   let uniquelink = "https://localhost:5000/password/forgetpassword/" + uniqueid;
+//   console.log(uniquelink)
+//   ForgotPasswordRequests.create({
+//     uuid: uniqueid,
+//     isactive: true,
+//     expenseuserId: uid
+//   })
+
+//   // }
+//   try {
+
+//     // //pasword reset send via sendinblue/brevo
+//     // console.log("Starting password reset process");
+//     // let apiInstance = new Sib.TransactionalEmailsApi();
+//     // let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
+//     // sendSmtpEmail.subject = "My {{params.subject}}";
+//     // sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href=uniquelink>reset link</a></body></html>";
+//     // sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
+//     // sendSmtpEmail.to = [
+//     //   { "email": req.body.email, "name": "sample-name" }
+//     // ];
+//     // sendSmtpEmail.replyTo = { "email": "example@brevo.com", "name": "sample-name" };
+//     // sendSmtpEmail.headers = { "Some-Custom-Name": "unique-id-1234" };
+//     // sendSmtpEmail.params = { "parameter": "My param value", "subject": "common subject" };
+//     // const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
+//     // console.log('Email sent successfully:', JSON.stringify(result));
+
+
+
+//     res.status(200).json({ message: 'Password reset email sent', link: uniquelink });
+
+//   } catch (error) {
+//     console.error('Error sending email:', error);
+//     res.status(500).json({
+//       error: 'Failed to send password reset email',
+//       details: error.message
+//     });
+//   }
+// };
+
+
+
+
+
 exports.postresetpassword = async (req, res) => {
-
-  await Expenseuser.findOne({ where: { email: req.body.email } })
-    .then(res => { uid = res.id })
-  let uniqueid = uuidv4();
-  let uniquelink = "https://localhost:5000/password/forgetpassword/" + uniqueid;
-  console.log(uniquelink)
-  ForgotPasswordRequests.create({
-    uuid: uniqueid,
-    isactive: true,
-    expenseuserId: uid
-  })
-
-  // }
+  console.log("postresetpassword hitted ")
   try {
+    const user = await Expenseuser.findOne({ email: req.body.email });
 
-    // //pasword reset send via sendinblue/brevo
+    if (!user) {
+      return res.status(404).jsonn({ error: 'User not found' });
+    }
+    let uniqueid = uuidv4();
+    const uniquelink = `http://localhost:5000/password/forgetpassword/${uniqueid}`;
+    console.log(uniquelink);
+
+    // await ForgotPasswordRequest.create({
+    //   uuid: uniqueid,
+    //   isactive: true,
+    //   expenseuserId: user._id
+    // });
+
+
+    let forgetpasswordrequest = new ForgotPasswordRequest({
+      uuid: uniqueid,
+      isactive: true,
+      expenseuserID: user._id
+    })
+    console.log(forgetpasswordrequest)
+    await forgetpasswordrequest.save()
+
+
+
+    // Uncomment the email sending logic when needed
     // console.log("Starting password reset process");
     // let apiInstance = new Sib.TransactionalEmailsApi();
-    // let sendSmtpEmail = new Sib.SendSmtpEmail(); // Define this first
+    // let sendSmtpEmail = new Sib.SendSmtpEmail();
     // sendSmtpEmail.subject = "My {{params.subject}}";
-    // sendSmtpEmail.htmlContent = "<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href=uniquelink>reset link</a></body></html>";
-    // sendSmtpEmail.sender = { "name": "John", "email": "example@example.com" };
-    // sendSmtpEmail.to = [
-    //   { "email": req.body.email, "name": "sample-name" }
-    // ];
-    // sendSmtpEmail.replyTo = { "email": "example@brevo.com", "name": "sample-name" };
+    // sendSmtpEmail.htmlContent = `<html><body><h1>Common: This is my first transactional email {{params.parameter}}</h1><a href="${uniquelink}">reset link</a></body></html>`;
+    // sendSmtpEmail.sender = { name: "John", email: "example@example.com" };
+    // sendSmtpEmail.to = [{ email: req.body.email, name: "sample-name" }];
+    // sendSmtpEmail.replyTo = { email: "example@brevo.com", name: "sample-name" };
     // sendSmtpEmail.headers = { "Some-Custom-Name": "unique-id-1234" };
-    // sendSmtpEmail.params = { "parameter": "My param value", "subject": "common subject" };
+    // sendSmtpEmail.params = { parameter: "My param value", subject: "common subject" };
     // const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
     // console.log('Email sent successfully:', JSON.stringify(result));
 
-
-
     res.status(200).json({ message: 'Password reset email sent', link: uniquelink });
-
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error sending password reset link:', error);
     res.status(500).json({
       error: 'Failed to send password reset email',
       details: error.message
@@ -520,59 +613,94 @@ exports.postresetpassword = async (req, res) => {
   }
 };
 
+
 exports.getresetpasword = (req, res) => {
   console.log(" linkpass.html");
   res.sendFile(path.join(__dirname, '..', 'public', 'linkpass.html'));
 }
+// exports.linkandurl = async (req, res) => {
+//   let currentuser;
+//   await ForgotPasswordRequests.findByPk(req.body.sid).then(res => {
+//     currentuser = res;
+//   })
+//   if (!currentuser) {
+//     console.log(" 770")
+//     return res.status(500).json({
+//       custommessage: 'invalid link'
+//     })
+//   }
+//   try {
+//     if (currentuser.isactive != 1) {
+//       console.log(" 771")
+//       return res.status(500).json({
+//         custommessage: 'link is not active ,please generate new link',
+//       });
+//     }
+
+//     if (req.body.password.length < 6) {
+//       return res.status(500).json({
+//         custommessage: 'password length should be greater then 6',
+//       });
+//     }
+//     const hashedPassword = await bcrypt.hash(req.body.password, 10);
+//     await Expenseuser.update(
+//       { password: hashedPassword },
+//       {
+//         where: { id: currentuser.expenseuserId }
+//       }
+//     )
+//     await ForgotPasswordRequests.update(
+//       { isactive: false },
+//       {
+//         where: { uuid: currentuser.uuid }
+//       }
+
+//     )
+//     res.status(200).json({ message: 'Password reset succesfully' });
+//   }
+//   catch {
+//     console.log(" 772")
+//     res.status(500).json({
+//       error: 'Failed to send password reset email',
+//       custommessage: error.message
+//     });
+//   }
+// }
+
 exports.linkandurl = async (req, res) => {
-  let currentuser;
-  await ForgotPasswordRequests.findByPk(req.body.sid).then(res => {
-    currentuser = res;
-  })
-  if (!currentuser) {
-    console.log(" 770")
-    return res.status(500).json({
-      custommessage: 'invalid link'
-    })
-  }
+  console.log("linkandurl is hitted")
   try {
-    if (currentuser.isactive != 1) {
-      console.log(" 771")
-      return res.status(500).json({
-        custommessage: 'link is not active ,please generate new link',
-      });
+    const currentuser = await ForgotPasswordRequest.findOne({ uuid: req.body.sid });
+console.log(currentuser)
+    if (!currentuser) {
+      console.log("770");
+      return res.status(500).json({ custommessage: 'Invalid link' });
+    }
+
+    if (!currentuser.isactive) {
+      console.log("771");
+      return res.status(500).json({ custommessage: 'Link is not active, please generate a new link' });
     }
 
     if (req.body.password.length < 6) {
-      return res.status(500).json({
-        custommessage: 'password length should be greater then 6',
-      });
+      return res.status(500).json({ custommessage: 'Password length should be greater than 6' });
     }
-    const hashedPassword = await bcrypt.hash(req.body.password, 10);
-    await Expenseuser.update(
-      { password: hashedPassword },
-      {
-        where: { id: currentuser.expenseuserId }
-      }
-    )
-    await ForgotPasswordRequests.update(
-      { isactive: false },
-      {
-        where: { uuid: currentuser.uuid }
-      }
 
-    )
-    res.status(200).json({ message: 'Password reset succesfully' });
-  }
-  catch {
-    console.log(" 772")
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    await Expenseuser.findByIdAndUpdate(currentuser.expenseuserID, { password: hashedPassword });
+
+    await ForgotPasswordRequest.updateOne({ uuid: currentuser.uuid }, { isactive: false });
+
+    res.status(200).json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.log("772");
     res.status(500).json({
-      error: 'Failed to send password reset email',
+      error: 'Failed to reset password',
       custommessage: error.message
     });
   }
-}
-
+};
 exports.reportpagefrontend = (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'reports.html'));
 }
@@ -603,23 +731,23 @@ exports.datedexpense = (req, res) => {
   });
 }
 
-exports.downloadexpenses = async (req, res) => {
-  console.log(req.user.id, " hell o   hello ")
-  try {
-    const expenses = await req.user.getExpensedata(); // Magic method
-    console.log("            attacked          ", expenses);
-    const stringified = JSON.stringify(expenses);
-    const filename = `expense${new Date()}.txt`
-    console.log(stringified)
-    const fileurl = await uploadToS3(stringified, filename);
-    await ReportLink.create({
-      link: fileurl,
-      expenseuserId: req.user.id  // assuming user.id is your user identifier
-    });
-    res.status(200).json({ fileurl, success: true })
-  }
-  catch (err) {
-    console.log(err)
-    res.status(501).json({ error: err })
-  }
-}
+// exports.downloadexpenses = async (req, res) => {
+//   console.log(req.user.id, " hell o   hello ")
+//   try {
+//     const expenses = await req.user.getExpensedata(); // Magic method
+//     console.log("            attacked          ", expenses);
+//     const stringified = JSON.stringify(expenses);
+//     const filename = `expense${new Date()}.txt`
+//     console.log(stringified)
+//     const fileurl = await uploadToS3(stringified, filename);
+//     await ReportLink.create({
+//       link: fileurl,
+//       expenseuserId: req.user.id  // assuming user.id is your user identifier
+//     });
+//     res.status(200).json({ fileurl, success: true })
+//   }
+//   catch (err) {
+//     console.log(err)
+//     res.status(501).json({ error: err })
+//   }
+// }

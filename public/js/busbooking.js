@@ -19,7 +19,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Fetch all existing entries
   const fetchData = () => {
     let expenseperpage = localStorage.getItem("pages")
-    axios.get("https://localhost:5000/appointmentData", {
+    axios.get("http://localhost:5000/appointmentData", {
       headers: {
         token: localStorage.getItem("user jwt")
       },
@@ -32,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
         // Iterate through products and create list items
         response.data.expensedata.forEach((product) => {
           let liitem = document.createElement("li");
-          liitem.innerHTML = `${product.expense} - ${product.description} - ${product.type} 
+          liitem.innerHTML = `${product.amount} - ${product.description} - ${product.type} 
           <button class="edt" type="button" onclick="editEntry(${product.id}, '${product.expense}', '${product.description}', '${product.type}')">edit</button> 
           <button class="del" type="button" onclick="deleteEntry(${product.id})">delete</button>`;
           liitem.classList.add("bookings");
@@ -135,13 +135,13 @@ document.addEventListener("DOMContentLoaded", () => {
       selectElement.options[selectElement.options.selectedIndex].textContent;
     console.log(etype)
     const userDetails = {
-      expense: event.target.expense.value,
+      amount: event.target.amount.value,
       description: event.target.description.value,
       type: etype,
     };
     console.log(userDetails)
     axios
-      .post("https://localhost:5000/appointmentData", userDetails, { headers: { token: localStorage.getItem("user jwt") } })
+      .post("http://localhost:5000/appointmentData", userDetails, { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
         alert('Product created successfully!');
         fetchData(); // Refresh the list
