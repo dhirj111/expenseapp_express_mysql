@@ -11,12 +11,16 @@ const userSchema = new Schema({
     type: String,
     required: true
   },
-  password:{
-    type:String,
-    required:true
+  password: {
+    type: String,
+    required: true
+  },
+  isPremiumUser: {
+    type: Boolean,
+    default: false
   },
   expenses: {
-    expense:  [
+    expense: [
       {
         expenseId: { type: Schema.Types.ObjectId, ref: 'expense', required: true }
       }

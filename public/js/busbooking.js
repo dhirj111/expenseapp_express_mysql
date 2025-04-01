@@ -1,6 +1,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
   let isLeaderboardLoaded = false;
+  console.log("isLeaderboardLoaded is = ", isLeaderboardLoaded)
   let form = document.getElementById("appointmentForm");
   let pages = document.getElementById("expenseperpage");
   console.log(pages)
@@ -82,11 +83,11 @@ document.addEventListener("DOMContentLoaded", () => {
         if (response.data.ispremium == true) {
           premiumbutton.outerHTML = '<span id="premium-text">You are a Premium User</span>';
           premiumbutton.innerHTML = 'you are premium user'
+          leaderboardload()
         }
       })
       .catch((error) => {
         console.error('Error fetching data:', error);
-        alert('YOU ARE NOT LOGGED IN , PLEASE LOGIN TO USE');
       });
   };
 
@@ -105,7 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
         alert("Leaderboard is already displayed!");
         return;
       }
-      axios.get("https://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
+      axios.get("http://localhost:5000/rankwiseexpense", { headers: { token: localStorage.getItem("user jwt") } })
         .then(response => {
           console.log(response.data)
           let leaderboardul = document.createElement("ul");
@@ -220,15 +221,23 @@ document.addEventListener("DOMContentLoaded", () => {
   let downloadbutton = document.getElementById("downloadexpense")
   downloadbutton.addEventListener("click", (event) => {
     event.preventDefault();
-    axios.get('https://localhost:5000/downloadexpenses', { headers: { token: localStorage.getItem("user jwt") } })
+    axios.get('http://localhost:5000/downloadexpenses', { headers: { token: localStorage.getItem("user jwt") } })
       .then((response) => {
+
+        let data = response.data.expenses
+        console.log(data);
+
+const blob = new Blob([data] , {type:'text/plain'})
+const url = URL.createObjectURL(blob);
         // let leaderboardul = document.createElement("ul");
         // leaderboardul.id = "leaderboardul";
         // document.body.appendChild(leaderboardul);
         // let leaderboardselected = document.getElementById("leaderboardul");
         // leaderboardselected.innerHTML = "";
         let reportli = document.createElement("li");
-        reportli.innerHTML = `<a href=${response.data.fileurl}>${response.data.fileurl}</a>`
+
+        
+        reportli.innerHTML = `<a href=${url}>${url}</a>`
         reportsul.appendChild(reportli)
         console.log(response)
       }).catch(err => {
@@ -249,11 +258,12 @@ document.addEventListener("DOMContentLoaded", () => {
           "currency": "INR",
           "callback_url": "https://eneqd3r9zrjok.x.pipedream.net/",
           "handler": async function (response) {
-            console.log("razorwood", response);
-            await axios.post('https://localhost:5000/purchase/updatetransectionstatus', {
-
-              //this are not passed correctly  to next middleware 
-              order_id: options.order_id,
+            console.log("razorwood", response, options, " hehe");
+            let orderidbox = options.order_id
+            let razorpayresponse = response;
+            console.log(razorpayresponse.razorpay_payment_id, "hererererere", orderidbox)
+            await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
+              order_id: orderidbox,
               payment_id: response.razorpay_payment_id
             }, { headers: { token: localStorage.getItem("user jwt") } }).then(res => {
               localStorage.setItem("user jwt", res.data.usertoken)
@@ -268,7 +278,7 @@ document.addEventListener("DOMContentLoaded", () => {
           "modal": {
             "ondismiss": async function () {
               try {
-                await axios.post('https://localhost:5000/purchase/updatetransectionstatus', {
+                await axios.post('http://localhost:5000/purchase/updatetransectionstatus', {
                   order_id: options.order_id,
                   payment_status: 'FAILED'
                 }, {

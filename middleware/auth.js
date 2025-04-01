@@ -9,9 +9,7 @@ const authenticate = async (req, res, next) => {
     const user = jwt.verify(token, SECRET_KEY);
     console.log(user.userId, "this is inside auth")
     Expenseuser.findById(user.userId).then(user => {
-
       console.log(JSON.stringify(user));
-
       req.user = user;
       console.log("req.user in auth is", req.user)
       next()

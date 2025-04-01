@@ -406,17 +406,17 @@ exports.login = async (req, res, next) => {
 }
 
 exports.buypremium = async (req, res) => {
-  // Start a mongoose session for a transaction
+  // Start a new mongoose session for this transaction
   const session = await mongoose.startSession();
-  session.startTransaction();
-  console.log(req.user.id);
-
-  const rzp = new Razorpay({
-    key_id: "rzp_test_BpGJqLLuHLOWWQ",
-    key_secret: "xSSP7tmZq1Hle782rmCDBRPP",
-  });
-
   try {
+    session.startTransaction();
+    console.log("User id:", req.user.id);
+
+    const rzp = new Razorpay({
+      key_id: "rzp_test_BpGJqLLuHLOWWQ",
+      key_secret: "xSSP7tmZq1Hle782rmCDBRPP",
+    });
+
     // Create Razorpay order using a promise wrapper
     const order = await new Promise((resolve, reject) => {
       rzp.orders.create({ amount: 3355050, currency: 'INR' }, (err, order) => {
@@ -430,72 +430,104 @@ exports.buypremium = async (req, res) => {
 
     console.log("Order created successfully:", order);
 
-    // Create a new Order document (set paymentId as an empty string initially)
+    // Create a new Order document with an empty paymentId
     const newOrder = new Order({
       OrderId: order.id,
       status: 'pending',
       paymentId: "" // No paymentId yet
     });
 
+    // Save the order inside the transaction
     await newOrder.save({ session });
     console.log("Order stored in database successfully");
 
     // Commit the transaction
     await session.commitTransaction();
-    session.endSession();
 
     return res.status(201).json({
       order,
       key_id: rzp.key_id,
     });
   } catch (error) {
-    // Roll back transaction on error
+    // Abort the transaction if an error occurs
     await session.abortTransaction();
-    session.endSession();
     console.error("Error in buypremium:", error);
     return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    // End the session to free up resources
+    session.endSession();
   }
 };
+
 exports.updatetransectionstatus = async (req, res) => {
-  const updateOrderPromise = Order.updateOne(
-    { OrderId: order_id },
-    { $set: { paymentId: payment_id, status: 'SUCCESSFUL' } },
-    { session }
-  );
+  // Start a new mongoose session for this transaction
+  const session = await mongoose.startSession();
+  try {
+    session.startTransaction();
+    console.log("Request body:", req.body);
+    console.log("Hitting update transection status");
 
-  const updateUserPromise = ExpenseUser.updateOne(
-    { _id: req.user.id },
-    { $set: { isPremiumUser: true } },
-    { session }
-  );
+    // Update the Order document sequentially
+    const updateOrderResult = await Order.updateOne(
+      { OrderId: req.body.order_id },
+      { $set: { paymentId: req.body.payment_id, status: 'SUCCESSFUL' } },
+      { session }
+    );
+    console.log("Order update result:", updateOrderResult);
 
-  // Execute both updates concurrently
-  await Promise.all([updateOrderPromise, updateUserPromise]);
+    // Update the Expenseuser document sequentially
+    const updateUserResult = await Expenseuser.updateOne(
+      { _id: req.user.id },
+      { $set: { isPremiumUser: true } },
+      { session }
+    );
+    console.log("User update result:", updateUserResult);
 
-  await session.commitTransaction();
-  session.endSession();
+    // Commit the transaction after both operations succeed
+    await session.commitTransaction();
 
-  return res.status(202).json({
-    usertoken: generateAccessToken(req.user.id, true),
-    success: true,
-    message: "Transaction Successful"
-  });
+    return res.status(202).json({
+      usertoken: generateAccessToken(req.user.id, true),
+      success: true,
+      message: "Transaction Successful"
+    });
+  } catch (error) {
+    // Abort the transaction in case of error
+    await session.abortTransaction();
+    console.error("Error in updatetransectionstatus:", error);
+    return res.status(500).json({ error: "Internal server error" });
+  } finally {
+    // End the session to free up resources
+    session.endSession();
+  }
 };
 
 exports.rankwiseexpense = async (req, res) => {
-  Expenseuser.findAll({
-    order: [['totalsum', 'DESC']],
-    attributes: ['name', 'totalsum'],
-    limit: 5
-  }).then(expensedata => {
-    res.json({ expensedata: expensedata });
-  })
-    .catch(err => {
-      console.log(err)
-      console.error('Error fetching products:', err);
-      res.status(500).json({ error: "Failed to fetch products" });
+  console.log("hitted rankwise expense")
+  try {
+    // Using Mongoose to find top 5 expenses from expenses collection
+    const expensedata = await Expense.find({})
+      .select('amount name description -_id') // Select amount, productName, and userName, exclude _id
+      .sort({ amount: -1 }) // Sort by amount in descending order
+      .limit(5);
+    console
+    // Transform the data to match the expected response format
+    const formattedData = expensedata.map(expense => {
+      return {
+        name: expense.name,
+        totalsum: expense.amount,
+        productName: expense.description
+      };
     });
-}
+    
+    console.log(formattedData);
+    return res.json({ expensedata: formattedData });
+  } catch (err) {
+    console.log(err);
+    console.error('Error fetching expense rankings:', err);
+    return res.status(500).json({ error: "Failed to fetch expense rankings" });
+  }
+};
 
 // exports.postresetpassword = async (req, res) => {
 
@@ -717,23 +749,28 @@ exports.datedexpense = (req, res) => {
   });
 }
 
-// exports.downloadexpenses = async (req, res) => {
-//   console.log(req.user.id, " hell o   hello ")
-//   try {
-//     const expenses = await req.user.getExpensedata(); // Magic method
-//     console.log("            attacked          ", expenses);
-//     const stringified = JSON.stringify(expenses);
-//     const filename = `expense${new Date()}.txt`
-//     console.log(stringified)
-//     const fileurl = await uploadToS3(stringified, filename);
-//     await ReportLink.create({
-//       link: fileurl,
-//       expenseuserId: req.user.id  // assuming user.id is your user identifier
-//     });
-//     res.status(200).json({ fileurl, success: true })
-//   }
-//   catch (err) {
-//     console.log(err)
-//     res.status(501).json({ error: err })
-//   }
-// }
+exports.downloadexpenses = async (req, res) => {
+  console.log(req.user.id, " hell o   hello ")
+  try {
+
+    const expenses = await Expense.find({ userId: req.user.id })
+
+console.log("download ctrl is @" , expenses ,"@ endede")
+    // const expenses = await req.user.getExpensedata(); // Magic method
+    // console.log("            attacked          ", expenses);
+    const stringified = JSON.stringify(expenses);
+    console.log("download ctrl is @" ,stringified ,"@ endede")
+    // const filename = `expense${new Date()}.txt`
+    // console.log(stringified)
+    // const fileurl = await uploadToS3(stringified, filename);
+    // await ReportLink.create({
+    //   link: fileurl,
+    //   expenseuserId: req.user.id  // assuming user.id is your user identifier
+    // });
+    res.status(200).json({ expenses:stringified, success: true })
+  }
+  catch (err) {
+    console.log(err)
+    res.status(501).json({ error: err })
+  }
+}
